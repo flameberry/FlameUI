@@ -1,0 +1,13 @@
+
+[submodule "FlameUI/vendor/GLFW"]
+	path = FlameUI/vendor/GLFW
+	url = https://github.com/glfw/glfw
+[submodule "FlameUI/vendor/glm"]
+	path = FlameUI/vendor/glm
+	url = https://github.com/g-truc/glm
+[submodule "FlameUI/vendor/freetype"]
+	path = FlameUI/vendor/freetype
+	url = https://github.com/freetype/freetype
+[submodule "FlameUI/vendor/msdfgen"]
+	path = FlameUI/vendor/msdfgen
+	url = https://github.com/Chlumsky/msdfgen
