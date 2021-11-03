@@ -18,18 +18,17 @@ int main()
         FL_TIMER_SCOPE("renderer_init");
         FlameUI::Renderer::Init();
     }
-    {
-        FL_TIMER_SCOPE("add_text");
-        FlameUI::Renderer::AddText("~!@#$%^&*()_+{}|:\"<>?1234567890-=[]\\;',./", { -300, 0 }, font_scale, { 1.0f, 1.0f, 0.0f, 1.0f });
-        FlameUI::Renderer::AddText("ABCDEFGHIJKLMNOPQRSTUVWXYZ", { -300, 40 }, font_scale, { 1.0f, 1.0f, 0.0f, 1.0f });
-        FlameUI::Renderer::AddText("abcdefghijklmnopqrstuvwxyz", { -300, 80 }, font_scale, { 1.0f, 1.0f, 0.0f, 1.0f });
-        FlameUI::Renderer::AddText("pause", { -300, -30 }, font_scale, { 1.0f, 1.0f, 0.0f, 1.0f });
-    }
+
     {
         FL_TIMER_SCOPE("add_quads");
-        FlameUI::Renderer::AddQuad(nullptr, { 0, -100 }, { 100, 100 }, { 1.0f, 1.0f, 1.0f, 1.0f }, FL_PROJECT_DIR + std::string("Sandbox/resources/textures/ChernoLogo.png"));
-        FlameUI::Renderer::AddQuad(nullptr, { -200, -100 }, { 100, 100 }, { 1.0f, 1.0f, 1.0f, 1.0f }, FL_PROJECT_DIR + std::string("Sandbox/resources/textures/Checkerboard.png"));
-        FlameUI::Renderer::AddQuad(nullptr, { 200, -100 }, { 100, 100 }, { 1.0f, 1.0f, 1.0f, 1.0f }, FL_PROJECT_DIR + std::string("Sandbox/resources/textures/pause_icon.png"));
+        FlameUI::Renderer::AddText("FlameBerry", { -50, 0 }, 1.0f, { 1.0f, 1.0f, 0.0f, 1.0f });
+        FlameUI::Renderer::AddQuad(nullptr, { 0, -120 }, { 100, 100 }, { 1.0f, 1.0f, 1.0f, 1.0f }, FL_PROJECT_DIR + std::string("Sandbox/resources/textures/pause_icon.png"));
+        FlameUI::Renderer::AddText("Engine", { -50, 50 }, 1.0f, { 1.0f, 1.0f, 0.0f, 1.0f });
+        for (uint8_t i = 0; i < 20; i++)
+        {
+            FlameUI::Renderer::AddQuad(nullptr, { 0 + 10 * i, 300 }, { 100, 100 }, { 1.0f, 0.0f, 1.0f, 1.0f }, FL_PROJECT_DIR + std::string("Sandbox/resources/textures/Checkerboard.png"));
+            FlameUI::Renderer::AddText("Engine", { -50 + 10 * i, -300 }, 1.0f, { 1.0f, 1.0f, 0.0f, 1.0f });
+        }
     }
 
     while (window->IsRunning())

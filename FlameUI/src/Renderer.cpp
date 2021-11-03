@@ -259,23 +259,39 @@ namespace FlameUI {
         std::array<Vertex, 4> vertices;
         GetQuadVertices(&vertices, position_in_pixels, dimensions_in_pixels, color);
 
-        static bool is_first_time = true;
-        if ((!s_Batches.size()) || (s_Batches.back().Vertices.size() == s_Max_Vertices_Per_Batch) || (is_first_time))
+        static uint32_t quad_id = 0;
+        if ((!quad_id) || (s_Batches[s_QuadDictionary[quad_id][0]].Vertices.size() == s_Max_Vertices_Per_Batch))
         {
             s_Batches.emplace_back(BatchType::Quad);
             s_Batches.back().Init();
-            is_first_time = false;
+
+            quad_id = GenQuadId();
+            if (quadId)
+                *quadId = quad_id;
+            s_QuadDictionary[quad_id][0] = s_Batches.size() - 1;
+            s_QuadDictionary[quad_id][1] = 0;
+
+            for (auto& vertex : vertices)
+                s_Batches.back().Vertices.push_back(vertex);
+
+            LoadTexture(&quad_id, textureFilePath);
         }
-        uint32_t quad_id = GenQuadId();
-        if (quadId)
-            *quadId = quad_id;
-        s_QuadDictionary[quad_id][0] = s_Batches.size() - 1;
-        s_QuadDictionary[quad_id][1] = s_Batches.back().Vertices.size();
+        else if ((quad_id) && (s_Batches[s_QuadDictionary[quad_id][0]].Vertices.size() < s_Max_Vertices_Per_Batch))
+        {
+            uint32_t previous_quad_id = quad_id;
 
-        for (auto& vertex : vertices)
-            s_Batches.back().Vertices.push_back(vertex);
+            quad_id = GenQuadId();
+            if (quadId)
+                *quadId = quad_id;
 
-        LoadTexture(&quad_id, textureFilePath);
+            s_QuadDictionary[quad_id][0] = s_QuadDictionary[previous_quad_id][0];
+            s_QuadDictionary[quad_id][1] = s_QuadDictionary[previous_quad_id][1] + 4;
+
+            for (auto& vertex : vertices)
+                s_Batches[s_QuadDictionary[quad_id][0]].Vertices.push_back(vertex);
+
+            LoadTexture(&quad_id, textureFilePath);
+        }
     }
 
     void Renderer::AddQuadToTextBatch(
@@ -284,28 +300,38 @@ namespace FlameUI {
         uint32_t textureId
     )
     {
-        static bool is_first_time = true;
-        if ((!s_Batches.size()) || (s_Batches.back().Vertices.size() == s_Max_Vertices_Per_Batch) || (is_first_time))
+        static uint32_t quad_id = 0;
+        if ((!quad_id) || (s_Batches[s_QuadDictionary[quad_id][0]].Vertices.size() == s_Max_Vertices_Per_Batch))
         {
             s_Batches.emplace_back(BatchType::Text);
             s_Batches.back().Init();
-            is_first_time = false;
+
+            quad_id = GenQuadId();
+            if (quadId)
+                *quadId = quad_id;
+            s_QuadDictionary[quad_id][0] = s_Batches.size() - 1;
+            s_QuadDictionary[quad_id][1] = 0;
+
+            for (auto& vertex : vertices)
+                s_Batches.back().Vertices.push_back(vertex);
+
+            s_Batches.back().RendererIds.textureIds.push_back(textureId);
         }
-        uint32_t quad_id = GenQuadId();
-        if (quadId)
-            *quadId = quad_id;
-        s_QuadDictionary[quad_id][0] = s_Batches.size() - 1;
-        s_QuadDictionary[quad_id][1] = s_Batches.back().Vertices.size();
+        else if ((quad_id) && (s_Batches[s_QuadDictionary[quad_id][0]].Vertices.size() < s_Max_Vertices_Per_Batch))
+        {
+            uint32_t previous_quad_id = quad_id;
+            quad_id = GenQuadId();
+            if (quadId)
+                *quadId = quad_id;
 
-        auto character_vertices = vertices;
-        uint16_t slot = s_Batches.back().Vertices.size() / 4;
-        for (uint8_t i = 0; i < 4; i++)
-            character_vertices[i].texture_index = (float)slot;
+            s_QuadDictionary[quad_id][0] = s_QuadDictionary[previous_quad_id][0];
+            s_QuadDictionary[quad_id][1] = s_QuadDictionary[previous_quad_id][1] + 4;
 
-        for (auto& vertex : character_vertices)
-            s_Batches.back().Vertices.push_back(vertex);
+            for (auto& vertex : vertices)
+                s_Batches[s_QuadDictionary[previous_quad_id][0]].Vertices.push_back(vertex);
 
-        s_Batches.back().RendererIds.textureIds.push_back(textureId);
+            s_Batches[s_QuadDictionary[previous_quad_id][0]].RendererIds.textureIds.push_back(textureId);
+        }
     }
 
     void Renderer::AddText(
@@ -315,6 +341,7 @@ namespace FlameUI {
         const fuiVec4<float>& color
     )
     {
+        static uint16_t slot = 0;
         auto position = position_in_pixels;
         for (std::string::const_iterator it = text.begin(); it != text.end(); it++)
         {
@@ -343,6 +370,13 @@ namespace FlameUI {
             vertices[2].texture_uv = { 1.0f, 1.0f };
             vertices[3].texture_uv = { 1.0f, 0.0f };
 
+            for (auto& vertex : vertices)
+                vertex.texture_index = (float)slot;
+
+            slot++;
+            if (slot == s_Max_Texture_Slots)
+                slot = 0;
+
             for (uint8_t i = 0; i < 4; i++)
                 vertices[i].color = color;
 
@@ -363,8 +397,8 @@ namespace FlameUI {
                 GL_CHECK_ERROR(glActiveTexture(GL_TEXTURE0 + i));
                 GL_CHECK_ERROR(glBindTexture(GL_TEXTURE_2D, RendererIds.textureIds[i]));
             }
-            GL_CHECK_ERROR(glUseProgram(RendererIds.shaderId));
 
+            GL_CHECK_ERROR(glUseProgram(RendererIds.shaderId));
             GL_CHECK_ERROR(glUniformMatrix4fv(GetUniformLocation("u_ViewProjectionMatrix", RendererIds.shaderId), 1, GL_FALSE, glm::value_ptr(s_Proj_Matrix)));
 
             GL_CHECK_ERROR(glBindVertexArray(RendererIds.v_arrayId));
