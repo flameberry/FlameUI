@@ -6,17 +6,22 @@
 #include <glad/glad.h>
 #include <unordered_map>
 #include "opengl_math_types.h"
-#include "Font.h"
 
 namespace FlameUI {
     class Renderer
     {
+    public:
+        enum class QuadPosType
+        {
+            None = 0, QuadPosBottomLeftVertex, QuadPosCenter
+        };
     public:
         static void Init();
         static void CleanUp();
 
         static void AddQuad(
             uint32_t* quadId,
+            const QuadPosType& positionType,
             const fuiVec2<int>& position_in_pixels,
             const fuiVec2<uint32_t>& dimensions_in_pixels,
             const fuiVec4<float>& color,
@@ -30,13 +35,14 @@ namespace FlameUI {
         );
         static void OnDraw();
 
-        inline static void SetUIFont(const Font& font) { s_FlameUIFont = font; }
+        inline static void SetUIFont(const std::string& filePath) { s_UserFontFilePath = filePath; }
         static void OnResize(uint32_t window_width, uint32_t window_height);
     private:
-        static void LoadFont(Font* font, const std::string& filePath);
+        static void LoadFont(const std::string& filePath);
         static uint32_t GenQuadId();
         static void GetQuadVertices(
             std::array<Vertex, 4>* vertices,
+            const QuadPosType& positionType,
             const fuiVec2<int>& position_in_pixels,
             const fuiVec2<uint32_t>& dimensions_in_pixels,
             const fuiVec4<float>& color
@@ -82,16 +88,35 @@ namespace FlameUI {
             OpenGLIds RendererIds;
             BatchType CurrentBatchType = BatchType::None;
         };
+        struct Character
+        {
+            uint32_t TextureId;  // ID handle of the glyph texture
+            glm::ivec2 Size;       // Size of glyph
+            glm::ivec2 Bearing;    // Offset from baseline to left/top of glyph
+            double Advance;    // Offset to advance to next glyph
+        };
+        struct FontProps
+        {
+            float Scale;
+            float Strength;
+            float PixelRange;
+        };
     private:
         static glm::mat4 s_Proj_Matrix;
         static float s_AspectRatio;
 
         static std::vector<Batch> s_Batches;
 
-        static Font s_FlameUIFont;
+        static std::unordered_map<char, Character> s_Characters;
+        static std::string s_UserFontFilePath;
         static std::string s_DefaultFontFilePath;
+
+        static FontProps s_FontProps;
 
         static std::unordered_map<uint32_t, uint32_t[2]> s_QuadDictionary;
         static std::unordered_map<std::string, GLint> m_uniformloc_cache;
     };
+
+#define FL_QUAD_POS_BOTTOM_LEFT_VERTEX FlameUI::Renderer::QuadPosType::QuadPosBottomLeftVertex
+#define FL_QUAD_POS_CENTER FlameUI::Renderer::QuadPosType::QuadPosCenter
 }

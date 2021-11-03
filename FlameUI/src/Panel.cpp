@@ -9,7 +9,7 @@ namespace FlameUI {
         const std::string& textureFilePath
     )
     {
-        Renderer::AddQuad(&m_PanelQuadId, position_in_pixels, dimensions_in_pixels, color, textureFilePath);
+        Renderer::AddQuad(&m_PanelQuadId, FL_QUAD_POS_CENTER, position_in_pixels, dimensions_in_pixels, color, textureFilePath);
     }
 
     void Panel::AddButton(

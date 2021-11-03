@@ -29,7 +29,9 @@ namespace FlameUI {
     float Renderer::s_AspectRatio = (float)(1280.0f / 720.0f);
     glm::mat4 Renderer::s_Proj_Matrix = glm::ortho(-s_AspectRatio, s_AspectRatio, -1.0f, 1.0f, -1.0f, 1.0f);
 
-    Font Renderer::s_FlameUIFont;
+    Renderer::FontProps Renderer::s_FontProps = { 1.0f, 0.5f, 8.0f };
+    std::unordered_map<char, Renderer::Character> Renderer::s_Characters;
+    std::string Renderer::s_UserFontFilePath = "";
     std::string Renderer::s_DefaultFontFilePath = FL_PROJECT_DIR + std::string("FlameUI/resources/fonts/OpenSans-Regular.ttf");
 
     void Renderer::OnResize(uint32_t window_width, uint32_t window_height)
@@ -52,9 +54,9 @@ namespace FlameUI {
     {
         GL_CHECK_ERROR(glEnable(GL_BLEND));
         GL_CHECK_ERROR(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
-        if (s_FlameUIFont.FilePath == "")
-            s_FlameUIFont.FilePath = s_DefaultFontFilePath;
-        LoadFont(&s_FlameUIFont, s_FlameUIFont.FilePath);
+        if (s_UserFontFilePath == "")
+            s_UserFontFilePath = s_DefaultFontFilePath;
+        LoadFont(s_UserFontFilePath);
     }
 
     void Renderer::Batch::Init()
@@ -214,14 +216,15 @@ namespace FlameUI {
 
         if (CurrentBatchType == BatchType::Text)
         {
-            GL_CHECK_ERROR(glUniform1f(GetUniformLocation("u_PixelRange", RendererIds.shaderId), s_FlameUIFont.PixelRange));
-            GL_CHECK_ERROR(glUniform1f(GetUniformLocation("u_Strength", RendererIds.shaderId), s_FlameUIFont.Strength));
+            GL_CHECK_ERROR(glUniform1f(GetUniformLocation("u_PixelRange", RendererIds.shaderId), s_FontProps.PixelRange));
+            GL_CHECK_ERROR(glUniform1f(GetUniformLocation("u_Strength", RendererIds.shaderId), s_FontProps.Strength));
         }
         GL_CHECK_ERROR(glUseProgram(0));
     }
 
     void Renderer::GetQuadVertices(
         std::array<Vertex, 4>* vertices,
+        const QuadPosType& positionType,
         const fuiVec2<int>& position_in_pixels,
         const fuiVec2<uint32_t>& dimensions_in_pixels,
         const fuiVec4<float>& color
@@ -231,10 +234,24 @@ namespace FlameUI {
         fuiVec2<float> dimensions = ConvertPixelsToOpenGLValues({ (int)dimensions_in_pixels.X, (int)dimensions_in_pixels.Y });
 
         Vertex Vertices[4];
-        (*vertices)[0].position = { -(dimensions.X / 2.0f) + position.X, -(dimensions.Y / 2.0f) + position.Y, 0.0f };
-        (*vertices)[1].position = { -(dimensions.X / 2.0f) + position.X, +(dimensions.Y / 2.0f) + position.Y, 0.0f };
-        (*vertices)[2].position = { +(dimensions.X / 2.0f) + position.X, +(dimensions.Y / 2.0f) + position.Y, 0.0f };
-        (*vertices)[3].position = { +(dimensions.X / 2.0f) + position.X, -(dimensions.Y / 2.0f) + position.Y, 0.0f };
+
+        switch (positionType)
+        {
+        case FL_QUAD_POS_BOTTOM_LEFT_VERTEX:
+            (*vertices)[0].position = { position.X,                position.Y,                0.0f };
+            (*vertices)[1].position = { position.X,                position.Y + dimensions.Y, 0.0f };
+            (*vertices)[2].position = { position.X + dimensions.X, position.Y + dimensions.Y, 0.0f };
+            (*vertices)[3].position = { position.X + dimensions.X, position.Y,                0.0f };
+            break;
+        case FL_QUAD_POS_CENTER:
+            (*vertices)[0].position = { -(dimensions.X / 2.0f) + position.X, -(dimensions.Y / 2.0f) + position.Y, 0.0f };
+            (*vertices)[1].position = { -(dimensions.X / 2.0f) + position.X, +(dimensions.Y / 2.0f) + position.Y, 0.0f };
+            (*vertices)[2].position = { +(dimensions.X / 2.0f) + position.X, +(dimensions.Y / 2.0f) + position.Y, 0.0f };
+            (*vertices)[3].position = { +(dimensions.X / 2.0f) + position.X, -(dimensions.Y / 2.0f) + position.Y, 0.0f };
+            break;
+        default:
+            break;
+        }
 
         for (auto& vertex : (*vertices))
         {
@@ -250,6 +267,7 @@ namespace FlameUI {
 
     void Renderer::AddQuad(
         uint32_t* quadId,
+        const QuadPosType& positionType,
         const fuiVec2<int>& position_in_pixels,
         const fuiVec2<uint32_t>& dimensions_in_pixels,
         const fuiVec4<float>& color,
@@ -257,7 +275,17 @@ namespace FlameUI {
     )
     {
         std::array<Vertex, 4> vertices;
-        GetQuadVertices(&vertices, position_in_pixels, dimensions_in_pixels, color);
+        switch (positionType)
+        {
+        case FL_QUAD_POS_BOTTOM_LEFT_VERTEX:
+            GetQuadVertices(&vertices, FL_QUAD_POS_BOTTOM_LEFT_VERTEX, position_in_pixels, dimensions_in_pixels, color);
+            break;
+        case FL_QUAD_POS_CENTER:
+            GetQuadVertices(&vertices, FL_QUAD_POS_CENTER, position_in_pixels, dimensions_in_pixels, color);
+            break;
+        default:
+            break;
+        }
 
         static uint32_t quad_id = 0;
         if ((!quad_id) || (s_Batches[s_QuadDictionary[quad_id][0]].Vertices.size() == s_Max_Vertices_Per_Batch))
@@ -345,7 +373,7 @@ namespace FlameUI {
         auto position = position_in_pixels;
         for (std::string::const_iterator it = text.begin(); it != text.end(); it++)
         {
-            Font::Character character = s_FlameUIFont.Characters[*it];
+            Character character = s_Characters[*it];
 
             float xpos = position.X + character.Bearing.x * scale;
             float ypos = position.Y - (character.Size.y - character.Bearing.y) * scale;
@@ -412,7 +440,7 @@ namespace FlameUI {
             batch.OnDraw();
     }
 
-    void Renderer::LoadFont(Font* font, const std::string& filePath)
+    void Renderer::LoadFont(const std::string& filePath)
     {
         msdfgen::FreetypeHandle* ft = msdfgen::initializeFreetype();
         FL_ASSERT(ft, "Failed to initialize Font Handle!");
@@ -437,7 +465,7 @@ namespace FlameUI {
             msdfgen::edgeColoringSimple(shape, 3.0);
             msdfgen::Bitmap<float, 3> msdf(glyphWidth, glyphHeight);
 
-            msdfgen::generateMSDF(msdf, shape, font->PixelRange, 1.0, msdfgen::Vector2(-bounds.l, -bounds.b));
+            msdfgen::generateMSDF(msdf, shape, s_FontProps.PixelRange, 1.0, msdfgen::Vector2(-bounds.l, -bounds.b));
 
             uint32_t textureId;
             GL_CHECK_ERROR(glGenTextures(1, &textureId));
@@ -450,14 +478,14 @@ namespace FlameUI {
 
             GL_CHECK_ERROR(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, msdf.width(), msdf.height(), 0, GL_RGB, GL_FLOAT, msdf.operator float* ()));
 
-            Font::Character ch = {
+            Character ch = {
                 textureId,
                 { msdf.width(), msdf.height() },
                 { shape.getBounds().l, shape.getBounds().t },
                 advance,
             };
 
-            font->Characters[character] = ch;
+            s_Characters[character] = ch;
         }
         msdfgen::destroyFont(msdffontHandle);
         msdfgen::deinitializeFreetype(ft);

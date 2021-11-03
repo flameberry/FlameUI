@@ -10,7 +10,7 @@ namespace FlameUI {
         const std::string& textureFilePath
     )
     {
-        Renderer::AddQuad(&m_QuadId, position_in_pixels, dimensions_in_pixels, color, textureFilePath);
+        Renderer::AddQuad(&m_QuadId, FL_QUAD_POS_CENTER, position_in_pixels, dimensions_in_pixels, color, textureFilePath);
         *quadId = m_QuadId;
     }
 
