@@ -554,7 +554,10 @@ namespace FlameUI {
             uint16_t index = s_QuadDictionary[*quadId][1];
             for (uint8_t j = 0; j < 4; j++)
                 s_Batches[s_QuadDictionary[*quadId][0]].Vertices[index + j].texture_index = (float)slot;
-
+        }
+        else
+        {
+            s_Batches[s_QuadDictionary[*quadId][0]].RendererIds.textureIds.emplace_back(0);
         }
         slot++;
         if (slot == 16)

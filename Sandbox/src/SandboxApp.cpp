@@ -16,7 +16,10 @@ int main()
         FL_TIMER_SCOPE("add_quads");
         FlameUI::Renderer::AddQuad(nullptr, FL_QUAD_POS_BOTTOM_LEFT_VERTEX, { 0, 0 }, { 100, 100 }, { 1.0f, 1.0f, 1.0f, 1.0f }, "");
         FlameUI::Renderer::AddText("Come on man!", { 10, 10 }, 1.0f, { 1.0f, 0.0f, 1.0f, 1.0f });
-        FlameUI::Renderer::AddQuad(nullptr, FL_QUAD_POS_CENTER, { 0, 0 }, { 100, 100 }, { 1.0f, 1.0f, 0.0f, 1.0f }, "");
+        FlameUI::Renderer::AddQuad(nullptr, FL_QUAD_POS_CENTER, { 0, 0 }, { 100, 100 }, { 1.0f, 1.0f, 0.0f, 1.0f }, FL_PROJECT_DIR + std::string("Sandbox/resources/textures/Checkerboard.png"));
+        FlameUI::Renderer::AddQuad(nullptr, FL_QUAD_POS_CENTER, { -50, -50 }, { 100, 100 }, { 0.0f, 1.0f, 0.0f, 1.0f }, "");
+        FlameUI::Renderer::AddQuad(nullptr, FL_QUAD_POS_CENTER, { -100, -100 }, { 100, 100 }, { 1.0f, 1.0f, 0.0f, 1.0f }, FL_PROJECT_DIR + std::string("Sandbox/resources/textures/pause_icon.png"));
+        FlameUI::Renderer::AddQuad(nullptr, FL_QUAD_POS_CENTER, { 100, 100 }, { 100, 100 }, { 0.0f, 0.0f, 1.0f, 1.0f }, "");
     }
 
     while (window->IsRunning())
