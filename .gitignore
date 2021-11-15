@@ -17,6 +17,10 @@ logs/
 # My Computer Specific Scripts
 *.sh
 
+# Pycharm folders
+.idea/
+__pycache__/
+
 # Prerequisites
 *.d
 

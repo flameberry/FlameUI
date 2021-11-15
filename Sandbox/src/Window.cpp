@@ -41,27 +41,27 @@ namespace FlameBerry {
 
         glfwSetWindowSizeCallback(m_Window, [](GLFWwindow* window, int width, int height)
             {
-                vec2& windowDimensions = *(vec2*)glfwGetWindowUserPointer(window);
-                windowDimensions.X = width;
-                windowDimensions.Y = height;
+                glm::vec2& windowDimensions = *(glm::vec2*)glfwGetWindowUserPointer(window);
+                windowDimensions.x = width;
+                windowDimensions.y = height;
             }
         );
     }
 
     uint32_t Window::GetWidth()
     {
-        return m_WindowDimensions.X;
+        return m_WindowDimensions.x;
     }
 
     uint32_t Window::GetHeight()
     {
-        return m_WindowDimensions.Y;
+        return m_WindowDimensions.y;
     }
 
 
     void Window::UpdateDimensions()
     {
-        glfwGetWindowSize(m_Window, (int*)&m_WindowDimensions.X, (int*)&m_WindowDimensions.Y);
+        glfwGetWindowSize(m_Window, (int*)&m_WindowDimensions.x, (int*)&m_WindowDimensions.y);
     }
 
     Window::~Window()

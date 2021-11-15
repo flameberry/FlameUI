@@ -11,3 +11,6 @@
 [submodule "FlameUI/vendor/msdfgen"]
 	path = FlameUI/vendor/msdfgen
 	url = https://github.com/Chlumsky/msdfgen
+[submodule "FlameUI/vendor/flameberrylogger"]
+	path = FlameUI/vendor/flameberrylogger
+	url = https://github.com/FlameBerry-dev/flameberrylogger

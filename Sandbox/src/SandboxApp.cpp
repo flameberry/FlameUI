@@ -12,15 +12,12 @@ int main()
         FlameUI::Renderer::Init();
     }
 
-    {
-        FL_TIMER_SCOPE("add_quads");
-        FlameUI::Renderer::AddQuad(nullptr, FL_QUAD_POS_BOTTOM_LEFT_VERTEX, { 0, 0 }, { 100, 100 }, { 1.0f, 1.0f, 1.0f, 1.0f }, "");
-        FlameUI::Renderer::AddText("Come on man!", { 10, 10 }, 1.0f, { 1.0f, 0.0f, 1.0f, 1.0f });
-        FlameUI::Renderer::AddQuad(nullptr, FL_QUAD_POS_CENTER, { 0, 0 }, { 100, 100 }, { 1.0f, 1.0f, 0.0f, 1.0f }, FL_PROJECT_DIR + std::string("Sandbox/resources/textures/Checkerboard.png"));
-        FlameUI::Renderer::AddQuad(nullptr, FL_QUAD_POS_CENTER, { -50, -50 }, { 100, 100 }, { 0.0f, 1.0f, 0.0f, 1.0f }, "");
-        FlameUI::Renderer::AddQuad(nullptr, FL_QUAD_POS_CENTER, { -100, -100 }, { 100, 100 }, { 1.0f, 1.0f, 0.0f, 1.0f }, FL_PROJECT_DIR + std::string("Sandbox/resources/textures/pause_icon.png"));
-        FlameUI::Renderer::AddQuad(nullptr, FL_QUAD_POS_CENTER, { 100, 100 }, { 100, 100 }, { 0.0f, 0.0f, 1.0f, 1.0f }, "");
-    }
+    glm::ivec2 string_dimensions;
+    FlameUI::Renderer::AddText("FlameBerry", { 0, 0 }, 5.0f, { 1.0f, 1.0f, 0.0f, 1.0f });
+    FlameUI::Renderer::AddText("string", { -100, 0 }, 0.6f, { 1.0f, 1.0f, 1.0f, 1.0f }, &string_dimensions);
+    FlameUI::Renderer::AddText("Umm", { 0, 0 }, 1.0f, glm::vec4(1.0f));
+
+    FL_LOG("String width: {0}, height: {1}", string_dimensions.x, string_dimensions.y);
 
     while (window->IsRunning())
     {

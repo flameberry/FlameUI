@@ -20,7 +20,7 @@ namespace FlameUI {
     void _FlameUI::_Button(const QuadProps& quadProps, uint32_t* buttonQuadId)
     {
         uint32_t quad_id;
-        s_Panels.back()->AddButton(&quad_id, quadProps.position_in_pixels, quadProps.dimensions_in_pixels, quadProps.color, quadProps.texture_filepath);
+        // s_Panels.back()->AddButton(&quad_id, quadProps.position_in_pixels, quadProps.dimensions_in_pixels, quadProps.color, quadProps.texture_filepath);
         if (buttonQuadId)
             *buttonQuadId = quad_id;
     }

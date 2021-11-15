@@ -1,6 +1,7 @@
 #pragma once
 #include <GLFW/glfw3.h>
 #include <memory>
+#include <glm/glm.hpp>
 
 namespace FlameBerry {
     class Window
@@ -20,14 +21,9 @@ namespace FlameBerry {
 
         bool IsRunning() const;
     private:
-        struct vec2
-        {
-            uint32_t X, Y;
-        };
-    private:
         GLFWwindow* m_Window;
     private:
-        vec2 m_WindowDimensions;
+        glm::vec2 m_WindowDimensions;
         const char* m_Title;
         bool m_Vsync;
     };

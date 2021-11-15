@@ -6,15 +6,11 @@
 #include <glad/glad.h>
 #include <unordered_map>
 #include "opengl_math_types.h"
+#include "core_macros.h"
 
 namespace FlameUI {
     class Renderer
     {
-    public:
-        enum class QuadPosType
-        {
-            None = 0, QuadPosBottomLeftVertex, QuadPosCenter
-        };
     public:
         static void Init();
         static void CleanUp();
@@ -22,18 +18,27 @@ namespace FlameUI {
         static void AddQuad(
             uint32_t* quadId,
             const QuadPosType& positionType,
-            const fuiVec2<int>& position_in_pixels,
-            const fuiVec2<uint32_t>& dimensions_in_pixels,
-            const fuiVec4<float>& color,
+            const glm::ivec2& position_in_pixels,
+            const glm::ivec2& dimensions_in_pixels,
+            const glm::vec4& color,
             const std::string& textureFilePath
         );
         static void AddText(
             const std::string& text,
-            const fuiVec2<int>& position_in_pixels,
+            const glm::ivec2& position_in_pixels,
             float scale,
-            const fuiVec4<float>& color
+            const glm::vec4& color,
+            glm::ivec2* textDimensions = nullptr
         );
         static void OnDraw();
+        static void ChangeQuadVertices(uint32_t& quadId, const std::array<Vertex, 4>& vertices);
+        static void ChangeQuadVertices(
+            uint32_t& quadId,
+            const QuadPosType& positionType,
+            const glm::ivec2& position_in_pixels = glm::ivec2(),
+            const glm::ivec2& dimensions_in_pixels = glm::ivec2(),
+            const glm::vec4& color = glm::vec4()
+        );
 
         inline static void SetUIFont(const std::string& filePath) { s_UserFontFilePath = filePath; }
         static void OnResize(uint32_t window_width, uint32_t window_height);
@@ -43,13 +48,13 @@ namespace FlameUI {
         static void GetQuadVertices(
             std::array<Vertex, 4>* vertices,
             const QuadPosType& positionType,
-            const fuiVec2<int>& position_in_pixels,
-            const fuiVec2<uint32_t>& dimensions_in_pixels,
-            const fuiVec4<float>& color
+            const glm::ivec2& position_in_pixels,
+            const glm::ivec2& dimensions_in_pixels,
+            const glm::vec4& color
         );
         static void LoadTexture(uint32_t* quadId, const std::string& filePath);
         static GLint GetUniformLocation(const std::string& name, uint32_t shaderId);
-        static fuiVec2<float> ConvertPixelsToOpenGLValues(const fuiVec2<int>& value_in_pixels);
+        static glm::vec2 ConvertPixelsToOpenGLValues(const glm::ivec2& value_in_pixels);
         static float ConvertXAxisPixelValueToOpenGLValue(int X);
         static float ConvertYAxisPixelValueToOpenGLValue(int Y);
         static void AddQuadToTextBatch(uint32_t* quadId, const std::array<FlameUI::Vertex, 4>& vertices, uint32_t textureId);
@@ -63,6 +68,10 @@ namespace FlameUI {
         {
             uint32_t v_bufferId, i_bufferId, v_arrayId, shaderId;
             std::vector<uint32_t> textureIds;
+        };
+        struct UniformBufferData
+        {
+            glm::mat4 ProjectionMatrix;
         };
         enum class BatchType
         {
@@ -102,8 +111,9 @@ namespace FlameUI {
             float PixelRange;
         };
     private:
-        static glm::mat4 s_Proj_Matrix;
         static float s_AspectRatio;
+        static uint32_t s_UniformBufferId;
+        static UniformBufferData s_UniformBufferData;
 
         static std::vector<Batch> s_Batches;
 
@@ -116,7 +126,4 @@ namespace FlameUI {
         static std::unordered_map<uint32_t, uint32_t[2]> s_QuadDictionary;
         static std::unordered_map<std::string, GLint> m_uniformloc_cache;
     };
-
-#define FL_QUAD_POS_BOTTOM_LEFT_VERTEX FlameUI::Renderer::QuadPosType::QuadPosBottomLeftVertex
-#define FL_QUAD_POS_CENTER FlameUI::Renderer::QuadPosType::QuadPosCenter
 }

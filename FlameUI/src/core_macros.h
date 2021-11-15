@@ -12,7 +12,7 @@
 
 
 #ifdef FL_DEBUG
-#include "fby_logger/fby_logger.h"
+#include <flameberrylogger/fby_logger.h>
 
 #define FL_LOG(...) fby_logger::log(__VA_ARGS__)
 #define FL_DO_ON_ASSERT(x, ...) if(!(x)) __VA_ARGS__;
@@ -29,3 +29,13 @@
 #define FL_ERROR(...)
 
 #endif
+
+namespace FlameUI {
+    enum class QuadPosType
+    {
+        None = 0, QuadPosBottomLeftVertex, QuadPosCenter
+    };
+}
+
+#define FL_QUAD_POS_BOTTOM_LEFT_VERTEX FlameUI::QuadPosType::QuadPosBottomLeftVertex
+#define FL_QUAD_POS_CENTER FlameUI::QuadPosType::QuadPosCenter

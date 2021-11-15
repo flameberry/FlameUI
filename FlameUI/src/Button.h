@@ -1,20 +1,21 @@
 #pragma once
 #include <string>
 #include "opengl_math_types.h"
+#include "core_macros.h"
 
 namespace FlameUI {
     struct QuadProps
     {
-        fuiVec2<int> position_in_pixels;
-        fuiVec2<uint32_t> dimensions_in_pixels;
-        fuiVec4<float> color;
+        glm::ivec2 position_in_pixels;
+        glm::ivec2 dimensions_in_pixels;
+        glm::vec4 color;
         std::string texture_filepath;
 
         QuadProps() = default;
         QuadProps(
-            const fuiVec2<int>& position_in_pixels,
-            const fuiVec2<uint32_t>& dimensions_in_pixels,
-            const fuiVec4<float>& color,
+            const glm::ivec2& position_in_pixels,
+            const glm::ivec2& dimensions_in_pixels,
+            const glm::vec4& color,
             const std::string& texture_filepath
         )
             : position_in_pixels(position_in_pixels), dimensions_in_pixels(dimensions_in_pixels), color(color), texture_filepath(texture_filepath)
@@ -27,23 +28,30 @@ namespace FlameUI {
     public:
         Button(
             uint32_t* quadId,
-            const fuiVec2<int>& position_in_pixels,
-            const fuiVec2<uint32_t>& dimensions_in_pixels,
-            const fuiVec4<float>& color,
+            const std::string& title,
+            const QuadPosType& quadPosType,
+            const glm::ivec2& position_in_pixels,
+            const glm::ivec2& dimensions_in_pixels,
+            const glm::vec4& color,
             const std::string& textureFilePath
         );
         ~Button() = default;
 
         static std::shared_ptr<Button> Create(
             uint32_t* quadId,
-            const fuiVec2<int>& position_in_pixels,
-            const fuiVec2<uint32_t>& dimensions_in_pixels,
-            const fuiVec4<float>& color,
+            const std::string& title,
+            const QuadPosType& quadPosType,
+            const glm::ivec2& position_in_pixels,
+            const glm::ivec2& dimensions_in_pixels,
+            const glm::vec4& color,
             const std::string& textureFilePath
         );
 
+        inline glm::ivec2 GetPosition() const { return m_Position; }
         inline uint32_t GetQuadId() const { return m_QuadId; }
     private:
+        glm::ivec2 m_Position;
+        glm::ivec4 m_InnerPadding;
         uint32_t m_QuadId;
     };
 }

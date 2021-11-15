@@ -10,7 +10,10 @@ out vec4 v_Color;
 out vec2 v_Texture_UV;
 out float v_TextureIndex;
 
-uniform mat4 u_ViewProjectionMatrix;
+layout (std140) uniform Camera
+{
+    mat4 ViewProjectionMatrix;
+} u_Camera;
 
 void main()
 {
@@ -18,7 +21,7 @@ void main()
     v_Texture_UV = a_Texture_UV;
     v_TextureIndex = a_TextureIndex;
 
-    gl_Position = u_ViewProjectionMatrix * vec4(a_Position, 1.0);
+    gl_Position = u_Camera.ViewProjectionMatrix * vec4(a_Position, 1.0);
 }
 
 #shader fragment
