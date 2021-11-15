@@ -12,12 +12,10 @@ int main()
         FlameUI::Renderer::Init();
     }
 
-    glm::ivec2 string_dimensions;
-    FlameUI::Renderer::AddText("FlameBerry", { 0, 0 }, 5.0f, { 1.0f, 1.0f, 0.0f, 1.0f });
-    FlameUI::Renderer::AddText("string", { -100, 0 }, 0.6f, { 1.0f, 1.0f, 1.0f, 1.0f }, &string_dimensions);
-    FlameUI::Renderer::AddText("Umm", { 0, 0 }, 1.0f, glm::vec4(1.0f));
-
-    FL_LOG("String width: {0}, height: {1}", string_dimensions.x, string_dimensions.y);
+    {
+        FL_TIMER_SCOPE("add_text");
+        FlameUI::Renderer::AddText("Flameberry", { 0, 0 }, 1.0f, { 1.0f, 1.0f, 0.0f, 1.0f });
+    }
 
     while (window->IsRunning())
     {

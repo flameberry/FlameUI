@@ -58,6 +58,8 @@ void main()
         float signDist = median(s.r, s.g, s.b) - threshold;
         signDist *= dot(msdfUnit, 0.5/fwidth(v_Texture_UV));
         float opacity = clamp(signDist + 0.5, 0.0, 1.0);
-        FragColor = mix(vec4(0.0, 0.0, 0.0, 0.0), v_Color, opacity);
+
+        // FragColor = mix(vec4(0.0, 0.0, 0.0, 0.0), v_Color, opacity);
+        FragColor = vec4(v_Color.rgb, v_Color.a * opacity);
     }
 }

@@ -1,8 +1,6 @@
 #include "Renderer.h"
 #include <iostream>
-#include "opengl_math_types.h"
-#include "opengl_helper_funcs.h"
-#include "opengl_debug.h"
+#include <fstream>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -13,58 +11,116 @@
 #include "msdfgen/msdfgen-ext.h"
 
 namespace FlameUI {
-    std::vector<Renderer::Batch> Renderer::s_Batches;
-
-    /**
-     * `s_QuadDictionary`
-     * In the `s_QuadDictionary` unordered_map, first element is the quad id, which is unique for every quad.
-     * In the `s_QuadDictionary` unordered_map, second element is an array of two unsigned ints,
-     * whose first value is the index of the batch where the quad is in, in the `s_Batches` vector,
-     * whereas the second element is the index of the first vertex of the quad in the Vertices buffer, stored in the `Batch` struct.
-     * The two indexes are enough to uniquely identify a quad in this Batch Renderer.
-     */
-    std::unordered_map<uint32_t, uint32_t[2]> Renderer::s_QuadDictionary;
-    std::unordered_map<std::string, GLint> Renderer::m_uniformloc_cache;
-
-    float Renderer::s_AspectRatio = (float)(1280.0f / 720.0f);
-    uint32_t Renderer::s_UniformBufferId;
-    Renderer::UniformBufferData Renderer::s_UniformBufferData;
-
-    Renderer::FontProps Renderer::s_FontProps = { 1.0f, 0.5f, 8.0f };
+    std::unordered_map<uint32_t, uint32_t[2]>     Renderer::s_QuadDictionary;
+    std::unordered_map<std::string, GLint>        Renderer::m_uniformloc_cache;
     std::unordered_map<char, Renderer::Character> Renderer::s_Characters;
-    std::string Renderer::s_UserFontFilePath = "";
-    std::string Renderer::s_DefaultFontFilePath = FL_PROJECT_DIR + std::string("FlameUI/resources/fonts/OpenSans-Regular.ttf");
+    std::vector<Renderer::Batch>                  Renderer::s_Batches;
+    uint32_t                                      Renderer::s_UniformBufferId;
+    float                                         Renderer::s_AspectRatio = (float)(1280.0f / 720.0f);
+    std::string                                   Renderer::s_UserFontFilePath = "";
 
-    void Renderer::OnResize(uint32_t window_width, uint32_t window_height)
+    /// FL_PROJECT_DIR is just a macro defined by cmake, which is the absolute file path of the source dir of the FlameUI project
+    std::string                                   Renderer::s_DefaultFontFilePath = FL_PROJECT_DIR + std::string("FlameUI/resources/fonts/OpenSans-Regular.ttf");
+    Renderer::UniformBufferData                   Renderer::s_UniformBufferData;
+    Renderer::FontProps                           Renderer::s_FontProps = { 1.0f, 0.5f, 8.0f };
+
+    ///
+    /// Framebuffer Class Function Implementations --------------------------------------------------------------------------------
+    ///
+
+    Framebuffer::Framebuffer(float width, float height)
+        : m_FramebufferId(0), m_ColorAttachmentId(0), m_DepthAttachmentId(0), m_FramebufferSize(width, height)
     {
-        s_AspectRatio = ((float)window_width / (float)window_height);
-        s_UniformBufferData.ProjectionMatrix = glm::ortho(-s_AspectRatio, s_AspectRatio, -1.0f, 1.0f, -1.0f, 1.0f);
+        glGenFramebuffers(1, &m_FramebufferId);
+        glBindFramebuffer(GL_FRAMEBUFFER, m_FramebufferId);
 
-        glViewport(0, 0, window_width, window_height);
+        glGenTextures(1, &m_ColorAttachmentId);
+        glBindTexture(GL_TEXTURE_2D, m_ColorAttachmentId);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_FramebufferSize.x, m_FramebufferSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_ColorAttachmentId, 0);
+
+        glGenTextures(1, &m_DepthAttachmentId);
+        glBindTexture(GL_TEXTURE_2D, m_DepthAttachmentId);
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, m_FramebufferSize.x, m_FramebufferSize.y, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, m_DepthAttachmentId, 0);
+
+        FL_ASSERT(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE, "Framebuffer is incomplete!");
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    uint32_t Renderer::GenQuadId()
+    void Framebuffer::OnUpdate()
     {
-        static uint32_t offset = 0;
-        uint32_t id = 15 + offset;
-        offset += 2;
-        return id;
+        if (m_FramebufferId)
+        {
+            glDeleteFramebuffers(1, &m_FramebufferId);
+            glDeleteTextures(1, &m_ColorAttachmentId);
+            glDeleteTextures(1, &m_DepthAttachmentId);
+        }
+
+        glGenFramebuffers(1, &m_FramebufferId);
+        glBindFramebuffer(GL_FRAMEBUFFER, m_FramebufferId);
+
+        glGenTextures(1, &m_ColorAttachmentId);
+        glBindTexture(GL_TEXTURE_2D, m_ColorAttachmentId);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_FramebufferSize.x, m_FramebufferSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_ColorAttachmentId, 0);
+
+        glGenTextures(1, &m_DepthAttachmentId);
+        glBindTexture(GL_TEXTURE_2D, m_DepthAttachmentId);
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, m_FramebufferSize.x, m_FramebufferSize.y, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, m_DepthAttachmentId, 0);
+
+        FL_ASSERT(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE, "Framebuffer is incomplete!");
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    void Renderer::Init()
+    void Framebuffer::SetFramebufferSize(float width, float height)
     {
-        GL_CHECK_ERROR(glEnable(GL_BLEND));
-        GL_CHECK_ERROR(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
-        if (s_UserFontFilePath == "")
-            s_UserFontFilePath = s_DefaultFontFilePath;
-        LoadFont(s_UserFontFilePath);
+        m_FramebufferSize = { width, height };
+    }
 
-        /* Create Uniform Buffer */
-        GL_CHECK_ERROR(glGenBuffers(1, &s_UniformBufferId));
-        GL_CHECK_ERROR(glBindBuffer(GL_UNIFORM_BUFFER, s_UniformBufferId));
-        GL_CHECK_ERROR(glBufferData(GL_UNIFORM_BUFFER, sizeof(UniformBufferData), nullptr, GL_DYNAMIC_DRAW));
-        GL_CHECK_ERROR(glBindBufferRange(GL_UNIFORM_BUFFER, 0, s_UniformBufferId, 0, sizeof(UniformBufferData)));
-        GL_CHECK_ERROR(glBindBuffer(GL_UNIFORM_BUFFER, 0));
+    void Framebuffer::Bind() const
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, m_FramebufferId);
+        glViewport(0, 0, m_FramebufferSize.x, m_FramebufferSize.y);
+    }
+
+    void Framebuffer::Unbind() const
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
+    Framebuffer::~Framebuffer()
+    {
+        glDeleteTextures(1, &m_ColorAttachmentId);
+        glDeleteTextures(1, &m_DepthAttachmentId);
+        glDeleteFramebuffers(1, &m_FramebufferId);
+    }
+
+    ///
+    /// Batch Struct Function Implementations --------------------------------------------------------------------------------
+    ///
+    Renderer::Batch::Batch()
+    {
+        Vertices.reserve(s_Max_Vertices_Per_Batch);
+    }
+
+    Renderer::Batch::Batch(const BatchType& batchType)
+        : CurrentBatchType(batchType)
+    {
+        Vertices.reserve(s_Max_Vertices_Per_Batch);
     }
 
     void Renderer::Batch::Init()
@@ -230,6 +286,60 @@ namespace FlameUI {
         GL_CHECK_ERROR(glUseProgram(0));
     }
 
+    void Renderer::Batch::OnDraw()
+    {
+        if (Vertices.size())
+        {
+            GL_CHECK_ERROR(glBindBuffer(GL_ARRAY_BUFFER, RendererIds.v_bufferId));
+            GL_CHECK_ERROR(glBufferSubData(GL_ARRAY_BUFFER, 0, Vertices.size() * sizeof(Vertex), Vertices.data()));
+
+            for (uint8_t i = 0; i < RendererIds.textureIds.size(); i++)
+            {
+                GL_CHECK_ERROR(glActiveTexture(GL_TEXTURE0 + i));
+                GL_CHECK_ERROR(glBindTexture(GL_TEXTURE_2D, RendererIds.textureIds[i]));
+            }
+
+            GL_CHECK_ERROR(glUseProgram(RendererIds.shaderId));
+            GL_CHECK_ERROR(glBindVertexArray(RendererIds.v_arrayId));
+            GL_CHECK_ERROR(glDrawElements(GL_TRIANGLES, s_Max_Indices_Per_Batch, GL_UNSIGNED_INT, 0));
+        }
+    }
+
+    ///
+    /// Renderer Function Implementations --------------------------------------------------------------------------------
+    ///
+    void Renderer::OnResize(uint32_t window_width, uint32_t window_height)
+    {
+        s_AspectRatio = ((float)window_width / (float)window_height);
+        s_UniformBufferData.ProjectionMatrix = glm::ortho(-s_AspectRatio, s_AspectRatio, -1.0f, 1.0f, -1.0f, 1.0f);
+
+        glViewport(0, 0, window_width, window_height);
+    }
+
+    uint32_t Renderer::GenQuadId()
+    {
+        static uint32_t offset = 0;
+        uint32_t id = 15 + offset;
+        offset += 2;
+        return id;
+    }
+
+    void Renderer::Init()
+    {
+        GL_CHECK_ERROR(glEnable(GL_BLEND));
+        GL_CHECK_ERROR(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+        if (s_UserFontFilePath == "")
+            s_UserFontFilePath = s_DefaultFontFilePath;
+        LoadFont(s_UserFontFilePath);
+
+        /* Create Uniform Buffer */
+        GL_CHECK_ERROR(glGenBuffers(1, &s_UniformBufferId));
+        GL_CHECK_ERROR(glBindBuffer(GL_UNIFORM_BUFFER, s_UniformBufferId));
+        GL_CHECK_ERROR(glBufferData(GL_UNIFORM_BUFFER, sizeof(UniformBufferData), nullptr, GL_DYNAMIC_DRAW));
+        GL_CHECK_ERROR(glBindBufferRange(GL_UNIFORM_BUFFER, 0, s_UniformBufferId, 0, sizeof(UniformBufferData)));
+        GL_CHECK_ERROR(glBindBuffer(GL_UNIFORM_BUFFER, 0));
+    }
+
     void Renderer::GetQuadVertices(
         std::array<Vertex, 4>* vertices,
         const QuadPosType& positionType,
@@ -374,21 +484,18 @@ namespace FlameUI {
         const std::string& text,
         const glm::ivec2& position_in_pixels,
         float scale,
-        const glm::vec4& color,
-        glm::ivec2* textDimensions
+        const glm::vec4& color
     )
     {
         static uint16_t slot = 0;
         auto position = position_in_pixels;
-
-        glm::vec2 temp_TextDimensions;
 
         for (std::string::const_iterator it = text.begin(); it != text.end(); it++)
         {
             Character character = s_Characters[*it];
 
             float xpos = position.x + character.Bearing.x * scale;
-            float ypos = position.y - (character.Size.y - character.Bearing.y) * scale;
+            float ypos = position.y - (character.Size.y - character.Bearing.y) * scale - s_FontProps.DescenderY * scale;
 
             float w = character.Size.x * scale;
             float h = character.Size.y * scale;
@@ -422,31 +529,6 @@ namespace FlameUI {
 
             AddQuadToTextBatch(nullptr, vertices, character.TextureId);
             position.x += (character.Advance) * scale + 1.0f;
-
-            temp_TextDimensions.x += w;
-            temp_TextDimensions.y = h;
-        }
-
-        if (textDimensions)
-            *textDimensions = { (uint32_t)ceil(temp_TextDimensions.x), (uint32_t)ceil(temp_TextDimensions.y) };
-    }
-
-    void Renderer::Batch::OnDraw()
-    {
-        if (Vertices.size())
-        {
-            GL_CHECK_ERROR(glBindBuffer(GL_ARRAY_BUFFER, RendererIds.v_bufferId));
-            GL_CHECK_ERROR(glBufferSubData(GL_ARRAY_BUFFER, 0, Vertices.size() * sizeof(Vertex), Vertices.data()));
-
-            for (uint8_t i = 0; i < RendererIds.textureIds.size(); i++)
-            {
-                GL_CHECK_ERROR(glActiveTexture(GL_TEXTURE0 + i));
-                GL_CHECK_ERROR(glBindTexture(GL_TEXTURE_2D, RendererIds.textureIds[i]));
-            }
-
-            GL_CHECK_ERROR(glUseProgram(RendererIds.shaderId));
-            GL_CHECK_ERROR(glBindVertexArray(RendererIds.v_arrayId));
-            GL_CHECK_ERROR(glDrawElements(GL_TRIANGLES, s_Max_Indices_Per_Batch, GL_UNSIGNED_INT, 0));
         }
     }
 
@@ -470,7 +552,13 @@ namespace FlameUI {
         msdfgen::FontHandle* msdffontHandle = loadFont(ft, filePath.c_str());
         FL_ASSERT(msdffontHandle, "Failed to load font from the file path: {0}", filePath);
 
-        double border_width = 4.0;
+        double border_width = 2.0;
+
+        msdfgen::FontMetrics metrics;
+        msdfgen::getFontMetrics(metrics, msdffontHandle);
+        FL_LOG("Font Metrics are:\nAscendry: {0}, Descendry: {1}, Line Height: {2}, emSize: {3}", metrics.ascenderY, metrics.descenderY, metrics.lineHeight, metrics.emSize);
+        s_FontProps.AscenderY = metrics.ascenderY;
+        s_FontProps.DescenderY = metrics.descenderY;
 
         for (uint8_t character = 32; character < 128; character++)
         {
@@ -511,6 +599,24 @@ namespace FlameUI {
         }
         msdfgen::destroyFont(msdffontHandle);
         msdfgen::deinitializeFreetype(ft);
+    }
+
+    glm::vec2 Renderer::GetTextDimensions(const std::string& text, float scale)
+    {
+        glm::vec2 textDimensions = { 0, 0 };
+        float lowestPositionOfChar = 0;
+        float highestPositionOfChar = 0;
+        for (std::string::const_iterator it = text.begin(); it != text.end(); it++)
+        {
+            textDimensions.x += s_Characters[*it].Size.x * scale;
+            if (lowestPositionOfChar > -(s_Characters[*it].Size.y - s_Characters[*it].Bearing.y) * scale)
+                lowestPositionOfChar = -(s_Characters[*it].Size.y - s_Characters[*it].Bearing.y) * scale;
+            if (highestPositionOfChar < -(s_Characters[*it].Size.y - s_Characters[*it].Bearing.y) * scale + s_Characters[*it].Size.y * scale)
+                highestPositionOfChar = -(s_Characters[*it].Size.y - s_Characters[*it].Bearing.y) * scale + s_Characters[*it].Size.y * scale;
+        }
+        textDimensions.y = highestPositionOfChar - lowestPositionOfChar;
+
+        return textDimensions;
     }
 
     glm::vec2 Renderer::ConvertPixelsToOpenGLValues(const glm::ivec2& value_in_pixels)
@@ -604,6 +710,35 @@ namespace FlameUI {
         slot++;
         if (slot == 16)
             slot = 0;
+    }
+
+    std::tuple<std::string, std::string> Renderer::ReadShaderSource(const std::string& filePath)
+    {
+        std::ifstream stream(filePath);
+
+        FL_ASSERT(stream.is_open(), "The given shader file {0} cannot be opened", filePath);
+
+        std::stringstream ss[2];
+        std::string line;
+
+        uint32_t shader_type = 2;
+
+        while (getline(stream, line))
+        {
+            if (line.find("#shader") != std::string::npos)
+            {
+                if (line.find("vertex") != std::string::npos)
+                    shader_type = 0;
+                else if (line.find("fragment") != std::string::npos)
+                    shader_type = 1;
+            }
+            else
+            {
+                ss[shader_type] << line << "\n";
+            }
+        }
+        stream.close();
+        return std::make_tuple(ss[0].str(), ss[1].str());
     }
 
     GLint Renderer::GetUniformLocation(const std::string& name, uint32_t shaderId)

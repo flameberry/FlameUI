@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
-#include "opengl_math_types.h"
-#include "core_macros.h"
+#include "Core.h"
+#include <glm/glm.hpp>
 
 namespace FlameUI {
     struct QuadProps
