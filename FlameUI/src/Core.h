@@ -74,6 +74,11 @@ namespace FlameUI {
     {
         None = 0, QuadPosBottomLeftVertex, QuadPosCenter
     };
+
+    struct Bounds
+    {
+        float Left, Right, Bottom, Top;
+    };
 }
 
 #define FL_QUAD_POS_BOTTOM_LEFT_VERTEX FlameUI::QuadPosType::QuadPosBottomLeftVertex

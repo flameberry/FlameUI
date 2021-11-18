@@ -1,6 +1,7 @@
 #include "Renderer.h"
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -23,6 +24,8 @@ namespace FlameUI {
     std::string                                   Renderer::s_DefaultFontFilePath = FL_PROJECT_DIR + std::string("FlameUI/resources/fonts/OpenSans-Regular.ttf");
     Renderer::UniformBufferData                   Renderer::s_UniformBufferData;
     Renderer::FontProps                           Renderer::s_FontProps = { 1.0f, 0.5f, 8.0f };
+    glm::vec2                                     Renderer::s_ViewportSize = { 1280.0f, 720.0f };
+    GLFWwindow* Renderer::s_UserWindow;
 
     ///
     /// Framebuffer Class Function Implementations --------------------------------------------------------------------------------
@@ -112,6 +115,7 @@ namespace FlameUI {
     ///
     /// Batch Struct Function Implementations --------------------------------------------------------------------------------
     ///
+
     Renderer::Batch::Batch()
     {
         Vertices.reserve(s_Max_Vertices_Per_Batch);
@@ -308,12 +312,16 @@ namespace FlameUI {
     ///
     /// Renderer Function Implementations --------------------------------------------------------------------------------
     ///
-    void Renderer::OnResize(uint32_t window_width, uint32_t window_height)
+
+    void Renderer::OnResize()
     {
-        s_AspectRatio = ((float)window_width / (float)window_height);
+        int width, height;
+        glfwGetFramebufferSize(s_UserWindow, &width, &height);
+        s_ViewportSize = { (float)width, (float)height };
+        s_AspectRatio = (s_ViewportSize.x / s_ViewportSize.y);
         s_UniformBufferData.ProjectionMatrix = glm::ortho(-s_AspectRatio, s_AspectRatio, -1.0f, 1.0f, -1.0f, 1.0f);
 
-        glViewport(0, 0, window_width, window_height);
+        glViewport(0, 0, s_ViewportSize.x, s_ViewportSize.y);
     }
 
     uint32_t Renderer::GenQuadId()
@@ -324,10 +332,22 @@ namespace FlameUI {
         return id;
     }
 
-    void Renderer::Init()
+    glm::vec2   Renderer::GetViewportSize() { return s_ViewportSize; }
+    GLFWwindow* Renderer::GetUserGLFWwindow() { return s_UserWindow; }
+    void        Renderer::OnUpdate() { OnResize(); }
+
+    void Renderer::Init(GLFWwindow* window)
     {
-        GL_CHECK_ERROR(glEnable(GL_BLEND));
-        GL_CHECK_ERROR(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+        s_UserWindow = window;
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glEnable(GL_DEPTH_TEST);
+
+        int width, height;
+        glfwGetFramebufferSize(s_UserWindow, &width, &height);
+        s_ViewportSize = { (float)width, (float)height };
+
         if (s_UserFontFilePath == "")
             s_UserFontFilePath = s_DefaultFontFilePath;
         LoadFont(s_UserFontFilePath);
@@ -556,7 +576,6 @@ namespace FlameUI {
 
         msdfgen::FontMetrics metrics;
         msdfgen::getFontMetrics(metrics, msdffontHandle);
-        FL_LOG("Font Metrics are:\nAscendry: {0}, Descendry: {1}, Line Height: {2}, emSize: {3}", metrics.ascenderY, metrics.descenderY, metrics.lineHeight, metrics.emSize);
         s_FontProps.AscenderY = metrics.ascenderY;
         s_FontProps.DescenderY = metrics.descenderY;
 
@@ -622,19 +641,67 @@ namespace FlameUI {
     glm::vec2 Renderer::ConvertPixelsToOpenGLValues(const glm::ivec2& value_in_pixels)
     {
         glm::vec2 position_in_opengl_coords;
-        position_in_opengl_coords.x = value_in_pixels.x * (float)((2.0f * s_AspectRatio) / 1280.0f);
-        position_in_opengl_coords.y = value_in_pixels.y * (float)(2.0f / 720.0f);
+        position_in_opengl_coords.x = value_in_pixels.x * (float)((2.0f * s_AspectRatio) / s_ViewportSize.x);
+        position_in_opengl_coords.y = value_in_pixels.y * (float)(2.0f / s_ViewportSize.y);
         return position_in_opengl_coords;
     }
 
-    void Renderer::ChangeQuadVertices(uint32_t& quadId, const std::array<Vertex, 4>& vertices)
+    void Renderer::SetQuadZIndex(uint32_t* quadId, float z)
+    {
+        for (uint16_t i = 0; i < 4; i++)
+            s_Batches[s_QuadDictionary[*quadId][0]].Vertices[s_QuadDictionary[*quadId][1] + i].position.z = z;
+    }
+
+    void Renderer::SetQuadPosition(uint32_t* quadId, const glm::ivec2& position_in_pixels)
+    {
+        auto position = ConvertPixelsToOpenGLValues(position_in_pixels);
+        auto ptr = GetPtrToQuadVertices(quadId);
+        float size_x = ptr[3]->position.x - ptr[0]->position.x;
+        float size_y = ptr[1]->position.y - ptr[0]->position.y;
+        ptr[0]->position.x = position.x - (size_x / 2.0f);
+        ptr[1]->position.x = position.x - (size_x / 2.0f);
+        ptr[2]->position.x = position.x + (size_x / 2.0f);
+        ptr[3]->position.x = position.x + (size_x / 2.0f);
+
+        ptr[0]->position.y = position.y - (size_y / 2.0f);
+        ptr[1]->position.y = position.y + (size_y / 2.0f);
+        ptr[2]->position.y = position.y + (size_y / 2.0f);
+        ptr[3]->position.y = position.y - (size_y / 2.0f);
+    }
+
+    void Renderer::SetQuadDimensions(uint32_t* quadId, const glm::ivec2& dimensions_in_pixels)
+    {
+        auto dimensions = ConvertPixelsToOpenGLValues(dimensions_in_pixels);
+        auto ptr = GetPtrToQuadVertices(quadId);
+        float position_x = ptr[3]->position.x - (ptr[3]->position.x - ptr[0]->position.x) / 2.0f;
+        float position_y = ptr[1]->position.y - (ptr[1]->position.y - ptr[0]->position.y) / 2.0f;
+
+        ptr[0]->position.x = position_x - (dimensions.x / 2.0f);
+        ptr[1]->position.x = position_x - (dimensions.x / 2.0f);
+        ptr[2]->position.x = position_x + (dimensions.x / 2.0f);
+        ptr[3]->position.x = position_x + (dimensions.x / 2.0f);
+
+        ptr[0]->position.y = position_y - (dimensions.y / 2.0f);
+        ptr[1]->position.y = position_y + (dimensions.y / 2.0f);
+        ptr[2]->position.y = position_y + (dimensions.y / 2.0f);
+        ptr[3]->position.y = position_y - (dimensions.y / 2.0f);
+    }
+
+    void Renderer::SetQuadColor(uint32_t* quadId, const glm::vec4& color)
+    {
+        auto ptr = GetPtrToQuadVertices(quadId);
+        for (uint16_t i = 0; i < 4; i++)
+            ptr[i]->color = color;
+    }
+
+    void Renderer::ChangeQuadVertices(uint32_t* quadId, const std::array<Vertex, 4>& vertices)
     {
         for (uint8_t i = 0; i < 4; i++)
-            s_Batches[s_QuadDictionary[quadId][0]].Vertices[s_QuadDictionary[quadId][1] + i] = vertices[i];
+            s_Batches[s_QuadDictionary[*quadId][0]].Vertices[s_QuadDictionary[*quadId][1] + i] = vertices[i];
     }
 
     void Renderer::ChangeQuadVertices(
-        uint32_t& quadId,
+        uint32_t* quadId,
         const QuadPosType& positionType,
         const glm::ivec2& position_in_pixels,
         const glm::ivec2& dimensions_in_pixels,
@@ -644,17 +711,25 @@ namespace FlameUI {
         std::array<Vertex, 4> vertices;
         GetQuadVertices(&vertices, positionType, position_in_pixels, dimensions_in_pixels, color);
         for (uint8_t i = 0; i < 4; i++)
-            s_Batches[s_QuadDictionary[quadId][0]].Vertices[s_QuadDictionary[quadId][1] + i] = vertices[i];
+            s_Batches[s_QuadDictionary[*quadId][0]].Vertices[s_QuadDictionary[*quadId][1] + i] = vertices[i];
+    }
+
+    std::array<Vertex*, 4>Renderer::GetPtrToQuadVertices(uint32_t* quadId)
+    {
+        std::array<Vertex*, 4> vertices;
+        for (uint16_t i = 0; i < 4; i++)
+            vertices[i] = &(s_Batches[s_QuadDictionary[*quadId][0]].Vertices[s_QuadDictionary[*quadId][1] + i]);
+        return vertices;
     }
 
     float Renderer::ConvertXAxisPixelValueToOpenGLValue(int X)
     {
-        return (float)X * (float)((2.0f * s_AspectRatio) / 1280.0f);
+        return (float)X * (float)((2.0f * s_AspectRatio) / s_ViewportSize.x);
     }
 
     float Renderer::ConvertYAxisPixelValueToOpenGLValue(int Y)
     {
-        return (float)Y * (float)(2.0f / 720.0f);
+        return (float)Y * (float)(2.0f / s_ViewportSize.y);
     }
 
     void Renderer::LoadTexture(uint32_t* quadId, const std::string& filePath)

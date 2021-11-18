@@ -12,11 +12,10 @@ namespace FlameUI {
     class _FlameUI
     {
     public:
+        static void AddPanel(const std::shared_ptr<Panel>& panel);
+        static void OnUpdate();
         static void Init();
-        static void _Panel(const QuadProps& quadProps, uint32_t* panelQuadId = nullptr);
-        static void _Button(const QuadProps& quadProps, uint32_t* buttonQuadId = nullptr);
-        static void OnDraw();
-        static void End();
+        static void CheckFocus();
     private:
         static std::vector<std::shared_ptr<Panel>> s_Panels;
     };
