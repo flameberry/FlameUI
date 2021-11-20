@@ -11,6 +11,7 @@ namespace FlameUI {
 
     void _FlameUI::CheckFocus()
     {
+        FL_TIMER_SCOPE("CheckFocus()");
         GLFWwindow* window = Renderer::GetUserGLFWwindow();
         glm::vec2 viewportSize = Renderer::GetViewportSize();
         float z_index = -0.95f;
@@ -91,22 +92,26 @@ namespace FlameUI {
 
     void _FlameUI::OnUpdate()
     {
+        FL_TIMER_SCOPE("_FlameUI_OnUpdate()");
         for (auto& panel : s_Panels)
             panel->OnEvent();
     }
 
     void _FlameUI::Init()
     {
-        float offset = 1.9f / s_Panels.size();
-        float start = -0.9f;
-        for (auto& panel : s_Panels)
+        if (s_Panels.size())
         {
-            static uint16_t i = 0;
-            float z = start + offset * i;
-            panel->SetDefaultZIndex(z);
-            i++;
+            float offset = 1.9f / s_Panels.size();
+            float start = -0.9f;
+            for (auto& panel : s_Panels)
+            {
+                static uint16_t i = 0;
+                float z = start + offset * i;
+                panel->SetDefaultZIndex(z);
+                i++;
 
-            FL_LOG("Panel \"{0}\", Focused: {1}", panel->GetPanelName(), panel->IsFocused());
+                FL_LOG("Panel \"{0}\", Focused: {1}", panel->GetPanelName(), panel->IsFocused());
+            }
         }
     }
 }

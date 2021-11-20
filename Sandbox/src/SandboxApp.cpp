@@ -20,17 +20,78 @@ int main()
     FlameUI::_FlameUI::AddPanel(panelOne);
     FlameUI::_FlameUI::AddPanel(panelTwo);
     FlameUI::_FlameUI::AddPanel(panelThree);
+    // uint32_t quadid1;
+    // uint32_t quadid2;
+    // uint32_t quadid3;
+    // uint32_t quadid4;
+    // FlameUI::Renderer::AddQuad(&quadid1, FL_QUAD_POS_CENTER, { 0, 0 }, { 200, 200 }, { 1.0f, 0.0f, 1.0f, 1.0f }, FL_PROJECT_DIR"Sandbox/resources/textures/Checkerboard.png");
+    // FlameUI::Renderer::AddQuad(&quadid2, FL_QUAD_POS_CENTER, { 200, 0 }, { 100, 100 }, { 1.0f, 0.0f, 1.0f, 1.0f }, "");
+
+    // FlameUI::Renderer::AddQuad(&quadid3, FL_QUAD_POS_CENTER, { -200, 0 }, { 100, 100 }, { 1.0f, 0.0f, 1.0f, 1.0f }, FL_PROJECT_DIR"Sandbox/resources/textures/pause_icon.png");
+    // FlameUI::Renderer::AddQuad(&quadid4, FL_QUAD_POS_CENTER, { 100, -200 }, { 200, 200 }, { 1.0f, 1.0f, 0.0f, 1.0f }, "");
+
+    // FlameUI::Renderer::AddText("Hello", { -630, 0 }, 1.0f, { 1.0f, 0.0f, 1.0f, 1.0f });
 
     FlameUI::_FlameUI::Init();
 
     while (window->IsRunning())
     {
+        FL_TIMER_SCOPE("Per_Frame");
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         FlameUI::Renderer::OnUpdate();
         FlameUI::_FlameUI::CheckFocus();
         FlameUI::_FlameUI::OnUpdate();
+
+        // static bool once_1 = true;
+        // if (glfwGetKey(window->GetNativeWindow(), GLFW_KEY_1) == GLFW_PRESS)
+        // {
+        //     if (once_1)
+        //     {
+        //         FlameUI::Renderer::RemoveQuad(&quadid1);
+        //         once_1 = false;
+        //     }
+        // }
+        // if (glfwGetKey(window->GetNativeWindow(), GLFW_KEY_1) == GLFW_RELEASE)
+        //     once_1 = true;
+
+        // static bool once_2 = true;
+        // if (glfwGetKey(window->GetNativeWindow(), GLFW_KEY_2) == GLFW_PRESS)
+        // {
+        //     if (once_2)
+        //     {
+        //         FlameUI::Renderer::RemoveQuad(&quadid2);
+        //         once_2 = false;
+        //     }
+        // }
+        // if (glfwGetKey(window->GetNativeWindow(), GLFW_KEY_2) == GLFW_RELEASE)
+        //     once_2 = true;
+
+        // static bool once_3 = true;
+        // if (glfwGetKey(window->GetNativeWindow(), GLFW_KEY_3) == GLFW_PRESS)
+        // {
+        //     if (once_3)
+        //     {
+        //         FlameUI::Renderer::RemoveQuad(&quadid3);
+        //         once_3 = false;
+        //     }
+        // }
+        // if (glfwGetKey(window->GetNativeWindow(), GLFW_KEY_3) == GLFW_RELEASE)
+        //     once_3 = true;
+
+        // static bool once_4 = true;
+        // if (glfwGetKey(window->GetNativeWindow(), GLFW_KEY_4) == GLFW_PRESS)
+        // {
+        //     if (once_4)
+        //     {
+        //         FlameUI::Renderer::RemoveQuad(&quadid4);
+        //         once_4 = false;
+        //     }
+        // }
+        // if (glfwGetKey(window->GetNativeWindow(), GLFW_KEY_4) == GLFW_RELEASE)
+        //     once_4 = true;
+
         FlameUI::Renderer::OnDraw();
 
         window->OnUpdate();

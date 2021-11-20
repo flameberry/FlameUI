@@ -413,17 +413,7 @@ namespace FlameUI {
     )
     {
         std::array<Vertex, 4> vertices;
-        switch (positionType)
-        {
-        case FL_QUAD_POS_BOTTOM_LEFT_VERTEX:
-            GetQuadVertices(&vertices, FL_QUAD_POS_BOTTOM_LEFT_VERTEX, position_in_pixels, dimensions_in_pixels, color);
-            break;
-        case FL_QUAD_POS_CENTER:
-            GetQuadVertices(&vertices, FL_QUAD_POS_CENTER, position_in_pixels, dimensions_in_pixels, color);
-            break;
-        default:
-            break;
-        }
+        GetQuadVertices(&vertices, positionType, position_in_pixels, dimensions_in_pixels, color);
 
         static uint32_t quad_id = 0;
         if ((!quad_id) || (s_Batches[s_QuadDictionary[quad_id][0]].Vertices.size() == s_Max_Vertices_Per_Batch))
@@ -457,6 +447,68 @@ namespace FlameUI {
                 s_Batches[s_QuadDictionary[quad_id][0]].Vertices.push_back(vertex);
 
             LoadTexture(&quad_id, textureFilePath);
+        }
+    }
+
+    void Renderer::RemoveQuad(uint32_t* quadId)
+    {
+        if (s_QuadDictionary.find(*quadId) != s_QuadDictionary.end())
+        {
+            if (s_Batches[0].Vertices.size() > 4)
+            {
+                for (uint32_t index = s_Batches.size() - 1; index >= 0; index--)
+                {
+                    if (s_Batches[index].CurrentBatchType == BatchType::Quad)
+                    {
+                        if ((s_QuadDictionary[*quadId][0] != index) && (s_QuadDictionary[*quadId][1] != s_Batches[index].Vertices.size() - 4))
+                        {
+                            uint16_t j = 0;
+                            for (uint16_t i = s_Batches[index].Vertices.size() - 4; i != s_Batches[index].Vertices.size() - 1; i++)
+                            {
+                                s_Batches[s_QuadDictionary[*quadId][0]].Vertices[s_QuadDictionary[*quadId][1] + j] = s_Batches[index].Vertices[i];
+                                j++;
+                            }
+
+                            s_Batches[s_QuadDictionary[*quadId][0]].RendererIds.textureIds[s_QuadDictionary[*quadId][1] / 4] = s_Batches[index].RendererIds.textureIds.back();
+                            s_Batches[index].RendererIds.textureIds.pop_back();
+
+                            for (uint16_t i = 0; i < 4; i++)
+                                s_Batches[index].Vertices.pop_back();
+
+                            for (std::unordered_map<uint32_t, uint32_t[2]>::iterator i = s_QuadDictionary.begin(); i != s_QuadDictionary.end(); i++)
+                            {
+                                if (((*i).second[0] == index) && ((*i).second[1] == (uint32_t)s_Batches[index].Vertices.size() - 5))
+                                {
+                                    (*i).second[0] = s_QuadDictionary[*quadId][0];
+                                    (*i).second[1] = s_QuadDictionary[*quadId][1];
+
+                                    break;
+                                }
+                            }
+                            s_QuadDictionary.erase(*quadId);
+                        }
+                        else
+                        {
+                            for (uint16_t i = 0; i < 4; i++)
+                                s_Batches[index].Vertices.pop_back();
+                            s_Batches[index].RendererIds.textureIds.pop_back();
+                            s_QuadDictionary.erase(*quadId);
+                        }
+                        break;
+                    }
+                }
+            }
+            else if ((s_Batches[0].CurrentBatchType == BatchType::Quad) && (s_Batches[0].Vertices.size() <= 4))
+            {
+                if (s_Batches[0].Vertices.size())
+                {
+                    for (uint16_t i = 0; i < 4; i++)
+                        s_Batches[0].Vertices.pop_back();
+                    for (std::unordered_map<uint32_t, uint32_t[2]>::iterator it = s_QuadDictionary.begin(); it != s_QuadDictionary.end(); it++)
+                        s_QuadDictionary.erase((*it).first);
+                    s_Batches[0].RendererIds.textureIds.pop_back();
+                }
+            }
         }
     }
 
@@ -720,6 +772,16 @@ namespace FlameUI {
         for (uint16_t i = 0; i < 4; i++)
             vertices[i] = &(s_Batches[s_QuadDictionary[*quadId][0]].Vertices[s_QuadDictionary[*quadId][1] + i]);
         return vertices;
+    }
+
+    glm::ivec2 Renderer::ConvertOpenGLValuesToPixels(const glm::vec2& opengl_coords)
+    {
+        glm::ivec2 value_in_pixels;
+        int width, height;
+        glfwGetFramebufferSize(s_UserWindow, &width, &height);
+        value_in_pixels.x = (int)((opengl_coords.x / (2.0f * s_AspectRatio)) * width);
+        value_in_pixels.y = (int)((opengl_coords.y / 2.0f) * height);
+        return value_in_pixels;
     }
 
     float Renderer::ConvertXAxisPixelValueToOpenGLValue(int X)

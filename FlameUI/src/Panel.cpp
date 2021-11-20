@@ -1,6 +1,7 @@
 #include "Panel.h"
 #include "Renderer.h"
 #include "Core.h"
+#include "Timer.h"
 
 namespace FlameUI {
     Panel::Panel(const std::string& panelName, const glm::ivec2& position_in_pixels, const glm::ivec2& dimensions_in_pixels, const glm::vec4& color, const std::string& textureFilePath)
@@ -83,6 +84,13 @@ namespace FlameUI {
 
     void Panel::OnUpdate()
     {
+        std::array<Vertex*, 4> ptr = Renderer::GetPtrToQuadVertices(&m_PanelQuadId);
+        float size_x = ptr[3]->position.x - ptr[0]->position.x;
+        float size_y = ptr[1]->position.y - ptr[0]->position.y;
+        float position_x = ptr[3]->position.x - (ptr[3]->position.x - ptr[0]->position.x) / 2.0f;
+        float position_y = ptr[1]->position.y - (ptr[1]->position.y - ptr[0]->position.y) / 2.0f;
+        m_Position = Renderer::ConvertOpenGLValuesToPixels({ position_x, position_y });
+        m_Dimensions = Renderer::ConvertOpenGLValuesToPixels({ size_x, size_y });
         m_Bounds.Left = m_Position.x - (m_Dimensions.x / 2);
         m_Bounds.Right = m_Position.x + (m_Dimensions.x / 2);
         m_Bounds.Bottom = m_Position.y - (m_Dimensions.y / 2);
@@ -95,19 +103,18 @@ namespace FlameUI {
         {
             auto window = Renderer::GetUserGLFWwindow();
             glm::vec2 viewportSize = Renderer::GetViewportSize();
-            double x, y;
-            float cursor_pos_x, cursor_pos_y;
-            glfwGetCursorPos(window, &x, &y);
-            cursor_pos_x = x - viewportSize.x / 2.0f;
-            cursor_pos_y = -y + viewportSize.y / 2.0f;
             if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE)
             {
                 m_IsFirstTime = true;
                 m_IsGrabbed = false;
             }
-
             if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
             {
+                double x, y;
+                float cursor_pos_x, cursor_pos_y;
+                glfwGetCursorPos(window, &x, &y);
+                cursor_pos_x = x - viewportSize.x / 2.0f;
+                cursor_pos_y = -y + viewportSize.y / 2.0f;
                 if ((cursor_pos_x >= m_Bounds.Left) && (cursor_pos_x <= m_Bounds.Right) && (cursor_pos_y >= m_Bounds.Bottom) && (cursor_pos_y <= m_Bounds.Top))
                 {
                     m_IsGrabbed = true;
