@@ -98,26 +98,52 @@ namespace FlameUI {
         cursor_pos_x = x - viewportSize.x / 2.0f;
         cursor_pos_y = -y + viewportSize.y / 2.0f;
 
-        // bool is_on_left_border = (cursor_pos_x >= m_Bounds.Left - resize_area) && (cursor_pos_x <= m_Bounds.Left + resize_area) && (cursor_pos_y <= m_Bounds.Top + resize_area) && (cursor_pos_y >= m_Bounds.Bottom - resize_area);
-        // bool is_on_right_border = (cursor_pos_x >= m_Bounds.Right - resize_area) && (cursor_pos_x <= m_Bounds.Right + resize_area) && (cursor_pos_y <= m_Bounds.Top + resize_area) && (cursor_pos_y >= m_Bounds.Bottom - resize_area);
-        // bool is_on_top_border = (cursor_pos_y >= m_Bounds.Top - resize_area) && (cursor_pos_y <= m_Bounds.Top + resize_area) && (cursor_pos_x <= m_Bounds.Right + resize_area) && (cursor_pos_x >= m_Bounds.Left - resize_area);
-        // bool is_on_bottom_border = (cursor_pos_y >= m_Bounds.Bottom - resize_area) && (cursor_pos_y <= m_Bounds.Bottom + resize_area) && (cursor_pos_x <= m_Bounds.Right + resize_area) && (cursor_pos_x >= m_Bounds.Left - resize_area);
-        // bool is_on_tl_or_br_corners = (is_on_left_border && is_on_top_border) || (is_on_bottom_border && is_on_right_border);
-        // bool is_on_tr_or_bl_corners = (is_on_right_border && is_on_top_border) || (is_on_bottom_border && is_on_left_border);
+        bool is_on_left_border = (cursor_pos_x >= m_Bounds.Left - resize_area) && (cursor_pos_x <= m_Bounds.Left + resize_area) && (cursor_pos_y <= m_Bounds.Top + resize_area) && (cursor_pos_y >= m_Bounds.Bottom - resize_area);
+        bool is_on_right_border = (cursor_pos_x >= m_Bounds.Right - resize_area) && (cursor_pos_x <= m_Bounds.Right + resize_area) && (cursor_pos_y <= m_Bounds.Top + resize_area) && (cursor_pos_y >= m_Bounds.Bottom - resize_area);
+        bool is_on_top_border = (cursor_pos_y >= m_Bounds.Top - resize_area) && (cursor_pos_y <= m_Bounds.Top + resize_area) && (cursor_pos_x <= m_Bounds.Right + resize_area) && (cursor_pos_x >= m_Bounds.Left - resize_area);
+        bool is_on_bottom_border = (cursor_pos_y >= m_Bounds.Bottom - resize_area) && (cursor_pos_y <= m_Bounds.Bottom + resize_area) && (cursor_pos_x <= m_Bounds.Right + resize_area) && (cursor_pos_x >= m_Bounds.Left - resize_area);
+        bool is_on_tl_or_br_corners = (is_on_left_border && is_on_top_border) || (is_on_bottom_border && is_on_right_border);
+        bool is_on_tr_or_bl_corners = (is_on_right_border && is_on_top_border) || (is_on_bottom_border && is_on_left_border);
 
-        // GLFWcursor* resize_cursor = NULL;
-        // if (is_on_left_border || is_on_right_border)
-        //     resize_cursor = glfwCreateStandardCursor(GLFW_HRESIZE_CURSOR);
-        // else if (is_on_top_border || is_on_bottom_border)
-        //     resize_cursor = glfwCreateStandardCursor(GLFW_VRESIZE_CURSOR);
+        int resize_cursor = NULL;
+        if (is_on_left_border || is_on_right_border)
+            resize_cursor = GLFW_HRESIZE_CURSOR;
+        else if (is_on_top_border || is_on_bottom_border)
+            resize_cursor = GLFW_VRESIZE_CURSOR;
 
-        // if (is_on_tl_or_br_corners)
-        //     resize_cursor = glfwCreateStandardCursor(GLFW_RESIZE_NWSE_CURSOR);
-        // else if (is_on_tr_or_bl_corners)
-        //     resize_cursor = glfwCreateStandardCursor(GLFW_RESIZE_NESW_CURSOR);
+        if (is_on_tl_or_br_corners)
+            resize_cursor = GLFW_RESIZE_NWSE_CURSOR;
+        else if (is_on_tr_or_bl_corners)
+            resize_cursor = GLFW_RESIZE_NESW_CURSOR;
 
-        // glfwSetCursor(window, resize_cursor);
-        if (m_IsFocused)
+        glfwSetCursor(window, glfwCreateStandardCursor(resize_cursor));
+
+        bool resizing = false;
+        if (resize_cursor != NULL)
+            resizing = true;
+
+        static bool is_being_resized = false;
+
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE)
+            is_being_resized = false;
+
+        if (resizing)
+        {
+            if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+            {
+                if (is_on_left_border)
+                    is_being_resized = true;
+            }
+        }
+
+        if (is_being_resized)
+        {
+            auto ptr = Renderer::GetPtrToQuadVertices(&m_PanelQuadId);
+            ptr[0]->position.x = Renderer::ConvertPixelsToOpenGLValues({ cursor_pos_x, 0 }).x;
+            ptr[1]->position.x = Renderer::ConvertPixelsToOpenGLValues({ cursor_pos_x, 0 }).x;
+        }
+
+        if (m_IsFocused && !is_being_resized)
         {
             if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE)
             {

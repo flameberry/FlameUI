@@ -42,6 +42,7 @@ namespace FlameUI {
         static GLFWwindow* GetUserGLFWwindow();
         static glm::vec2   GetViewportSize();
         static glm::vec2   GetTextDimensions(const std::string& text, float scale);
+        static glm::vec2   ConvertPixelsToOpenGLValues(const glm::ivec2& value_in_pixels);
         static glm::ivec2  ConvertOpenGLValuesToPixels(const glm::vec2& opengl_coords);
         inline static void SetUIFont(const std::string& filePath) { s_UserFontFilePath = filePath; }
         static void        SetQuadZIndex(uint32_t* quadId, float z);
@@ -67,7 +68,6 @@ namespace FlameUI {
         static void        GetQuadVertices(std::array<Vertex, 4>* vertices, const QuadPosType& positionType, const glm::ivec2& position_in_pixels, const glm::ivec2& dimensions_in_pixels, const glm::vec4& color);
         static void        LoadTexture(uint32_t* quadId, const std::string& filePath);
         static GLint       GetUniformLocation(const std::string& name, uint32_t shaderId);
-        static glm::vec2   ConvertPixelsToOpenGLValues(const glm::ivec2& value_in_pixels);
         static float       ConvertXAxisPixelValueToOpenGLValue(int X);
         static float       ConvertYAxisPixelValueToOpenGLValue(int Y);
         static void        AddQuadToTextBatch(uint32_t* quadId, const std::array<FlameUI::Vertex, 4>& vertices, uint32_t textureId);
