@@ -2,12 +2,13 @@ import pathlib
 import platform
 
 flame_ui_project_dir = pathlib.Path(__file__).parent.parent
+flame_ui_project_name = 'FlameUI'
 
 
 def check_cmake_installation():
     cmake_path_apple = pathlib.Path('/usr/local/bin/cmake')
-    cmake_path_windows = pathlib.Path("")
-    cmake_path = pathlib.Path("")
+    cmake_path_windows = pathlib.Path('')
+    cmake_path = pathlib.Path('')
 
     if platform.system() == 'Darwin':
         cmake_path = cmake_path_apple
@@ -19,7 +20,6 @@ def check_cmake_installation():
     elif not cmake_exists:
         print("[FLAMEUI]: CMake not found.\n[FLAMEUI]: If you wish to install cmake, visit https://cmake.org/download/")
         exit()
-
 
 
 def check_cmd_line_tools_installation():

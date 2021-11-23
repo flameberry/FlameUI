@@ -15,8 +15,11 @@ namespace FlameUI {
         static void AddPanel(const std::shared_ptr<Panel>& panel);
         static void OnUpdate();
         static void Init();
+    private:
         static void CheckFocus();
+        static void ShiftDepthValues(uint32_t current_panel_index, uint32_t last_panel_index);
     private:
         static std::vector<std::shared_ptr<Panel>> s_Panels;
+        static std::vector<float> s_DepthValues;
     };
 }

@@ -50,6 +50,7 @@ namespace FlameUI {
         static void        SetQuadColor(uint32_t* quadId, const glm::vec4& color);
         static void        AddText(const std::string& text, const glm::ivec2& position_in_pixels, float scale, const glm::vec4& color);
         static void        AddQuad(uint32_t* quadId, const QuadPosType& positionType, const glm::ivec2& position_in_pixels, const glm::ivec2& dimensions_in_pixels, const glm::vec4& color, const std::string& textureFilePath);
+        /// Experimental function, not stable to use yet
         static void        RemoveQuad(uint32_t* quadId);
         static void        OnUpdate();
         static void        OnDraw();
@@ -85,7 +86,7 @@ namespace FlameUI {
         };
         /// Struct that contains all the matrices needed by the shader, which will be stored in a Uniform Buffer
         struct UniformBufferData { glm::mat4 ProjectionMatrix; };
-        enum class BatchType { None = 0, Quad, Text };
+        enum class BatchType { None = 0, Quad, TexturedQuad, Text };
         struct Batch
         {
             Batch();

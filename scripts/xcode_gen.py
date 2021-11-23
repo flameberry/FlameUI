@@ -2,7 +2,6 @@ import subprocess
 import os
 from Dependencies import flame_ui_project_dir
 from Dependencies import check_cmake_installation
-from Dependencies import check_xcode_installation
 
 if __name__ == '__main__':
     os.chdir(flame_ui_project_dir)

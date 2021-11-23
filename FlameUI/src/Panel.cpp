@@ -70,16 +70,6 @@ namespace FlameUI {
     void Panel::SetFocus(bool value)
     {
         m_IsFocused = value;
-        if (m_IsFocused)
-        {
-            m_ZIndex = 1.0f;
-            Renderer::SetQuadZIndex(&m_PanelQuadId, 1.0f);
-        }
-        else if (!m_IsFocused)
-        {
-            m_ZIndex = m_DefaultZIndex;
-            Renderer::SetQuadZIndex(&m_PanelQuadId, m_ZIndex);
-        }
     }
 
     void Panel::OnUpdate()
@@ -99,10 +89,36 @@ namespace FlameUI {
 
     void Panel::OnEvent()
     {
+        GLFWwindow* window = Renderer::GetUserGLFWwindow();
+        glm::vec2 viewportSize = Renderer::GetViewportSize();
+        double x, y;
+        float cursor_pos_x, cursor_pos_y;
+        static const uint32_t resize_area = 5;
+        glfwGetCursorPos(window, &x, &y);
+        cursor_pos_x = x - viewportSize.x / 2.0f;
+        cursor_pos_y = -y + viewportSize.y / 2.0f;
+
+        // bool is_on_left_border = (cursor_pos_x >= m_Bounds.Left - resize_area) && (cursor_pos_x <= m_Bounds.Left + resize_area) && (cursor_pos_y <= m_Bounds.Top + resize_area) && (cursor_pos_y >= m_Bounds.Bottom - resize_area);
+        // bool is_on_right_border = (cursor_pos_x >= m_Bounds.Right - resize_area) && (cursor_pos_x <= m_Bounds.Right + resize_area) && (cursor_pos_y <= m_Bounds.Top + resize_area) && (cursor_pos_y >= m_Bounds.Bottom - resize_area);
+        // bool is_on_top_border = (cursor_pos_y >= m_Bounds.Top - resize_area) && (cursor_pos_y <= m_Bounds.Top + resize_area) && (cursor_pos_x <= m_Bounds.Right + resize_area) && (cursor_pos_x >= m_Bounds.Left - resize_area);
+        // bool is_on_bottom_border = (cursor_pos_y >= m_Bounds.Bottom - resize_area) && (cursor_pos_y <= m_Bounds.Bottom + resize_area) && (cursor_pos_x <= m_Bounds.Right + resize_area) && (cursor_pos_x >= m_Bounds.Left - resize_area);
+        // bool is_on_tl_or_br_corners = (is_on_left_border && is_on_top_border) || (is_on_bottom_border && is_on_right_border);
+        // bool is_on_tr_or_bl_corners = (is_on_right_border && is_on_top_border) || (is_on_bottom_border && is_on_left_border);
+
+        // GLFWcursor* resize_cursor = NULL;
+        // if (is_on_left_border || is_on_right_border)
+        //     resize_cursor = glfwCreateStandardCursor(GLFW_HRESIZE_CURSOR);
+        // else if (is_on_top_border || is_on_bottom_border)
+        //     resize_cursor = glfwCreateStandardCursor(GLFW_VRESIZE_CURSOR);
+
+        // if (is_on_tl_or_br_corners)
+        //     resize_cursor = glfwCreateStandardCursor(GLFW_RESIZE_NWSE_CURSOR);
+        // else if (is_on_tr_or_bl_corners)
+        //     resize_cursor = glfwCreateStandardCursor(GLFW_RESIZE_NESW_CURSOR);
+
+        // glfwSetCursor(window, resize_cursor);
         if (m_IsFocused)
         {
-            auto window = Renderer::GetUserGLFWwindow();
-            glm::vec2 viewportSize = Renderer::GetViewportSize();
             if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE)
             {
                 m_IsFirstTime = true;
@@ -110,11 +126,6 @@ namespace FlameUI {
             }
             if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
             {
-                double x, y;
-                float cursor_pos_x, cursor_pos_y;
-                glfwGetCursorPos(window, &x, &y);
-                cursor_pos_x = x - viewportSize.x / 2.0f;
-                cursor_pos_y = -y + viewportSize.y / 2.0f;
                 if ((cursor_pos_x >= m_Bounds.Left) && (cursor_pos_x <= m_Bounds.Right) && (cursor_pos_y >= m_Bounds.Bottom) && (cursor_pos_y <= m_Bounds.Top))
                 {
                     m_IsGrabbed = true;
@@ -125,7 +136,6 @@ namespace FlameUI {
                         m_OffsetY = cursor_pos_y - m_Position.y;
                     }
                 }
-
                 if (m_IsGrabbed)
                 {
                     m_Position = { cursor_pos_x - m_OffsetX , cursor_pos_y - m_OffsetY };
