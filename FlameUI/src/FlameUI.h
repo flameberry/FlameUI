@@ -16,10 +16,13 @@ namespace FlameUI {
         static void OnUpdate();
         static void Init();
     private:
+        static void InvalidatePanelPositions(int current_panel_index);
         static void CheckFocus();
-        static void ShiftDepthValues(uint32_t current_panel_index, uint32_t last_panel_index);
     private:
+        /// First `uint16_t` stores the index of the panel in the `s_Panels` vector,
+        /// Second `uint16_t` stores the position of the panel, in terms of the z value
+        static std::vector<uint16_t>               s_PanelPositions;
         static std::vector<std::shared_ptr<Panel>> s_Panels;
-        static std::vector<float> s_DepthValues;
+        static std::vector<float>                  s_DepthValues;
     };
 }

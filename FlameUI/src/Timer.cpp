@@ -38,7 +38,7 @@ namespace FlameUI {
             stream << "process_name: " + timerData.ScopeName + "\nduration:\n\tseconds: " + std::to_string(timerData.Duration) + "\n\tmilliseconds: " + std::to_string(timerData.Duration * 1000.0f) + "\n\tmicroseconds: " + std::to_string(timerData.Duration * 1000.0f * 1000.0f) + "\n\n";
         stream.close();
 
-        FL_LOG("All Timings are stored in the file \"{0}\"", FL_PROJECT_DIR + std::string("FlameUI/logs/Timer.log"));
+        FL_INFO("All Timings are stored in the file \"{0}\"", FL_PROJECT_DIR + std::string("FlameUI/logs/Timer.log"));
     }
 }
 #endif

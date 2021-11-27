@@ -25,6 +25,7 @@ namespace FlameUI {
     Renderer::UniformBufferData                   Renderer::s_UniformBufferData;
     Renderer::FontProps                           Renderer::s_FontProps = { 1.0f, 0.5f, 8.0f };
     glm::vec2                                     Renderer::s_ViewportSize = { 1280.0f, 720.0f };
+    glm::vec2                                     Renderer::s_CursorPosition = { 0.0f, 0.0f };
     GLFWwindow* Renderer::s_UserWindow;
 
     ///
@@ -334,10 +335,22 @@ namespace FlameUI {
 
     glm::vec2   Renderer::GetViewportSize() { return s_ViewportSize; }
     GLFWwindow* Renderer::GetUserGLFWwindow() { return s_UserWindow; }
-    void        Renderer::OnUpdate() { OnResize(); }
+    glm::vec2& Renderer::GetCursorPosition() { return s_CursorPosition; }
+
+    void Renderer::OnUpdate()
+    {
+        double x, y;
+        glfwGetCursorPos(s_UserWindow, &x, &y);
+        s_CursorPosition.x = x - s_ViewportSize.x / 2.0f;
+        s_CursorPosition.y = -y + s_ViewportSize.y / 2.0f;
+        OnResize();
+    }
 
     void Renderer::Init(GLFWwindow* window)
     {
+        FL_LOGGER_INIT("FLAMEUI");
+        FL_INFO("Initialized Logger!");
+
         s_UserWindow = window;
 
         glEnable(GL_BLEND);
@@ -358,6 +371,8 @@ namespace FlameUI {
         GL_CHECK_ERROR(glBufferData(GL_UNIFORM_BUFFER, sizeof(UniformBufferData), nullptr, GL_DYNAMIC_DRAW));
         GL_CHECK_ERROR(glBindBufferRange(GL_UNIFORM_BUFFER, 0, s_UniformBufferId, 0, sizeof(UniformBufferData)));
         GL_CHECK_ERROR(glBindBuffer(GL_UNIFORM_BUFFER, 0));
+
+        FL_INFO("Initialized Renderer!");
     }
 
     void Renderer::GetQuadVertices(

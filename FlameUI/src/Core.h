@@ -11,21 +11,31 @@
 #endif
 
 #ifdef FL_DEBUG
-#include <flameberrylogger/fby_logger.h>
+#include "flamelogger/flamelogger.h"
 
-#define FL_LOG(...) fby_logger::log(__VA_ARGS__)
+#define FL_LOGGER_INIT(project_name) flamelogger::Init(project_name)
+
 #define FL_DO_ON_ASSERT(x, ...) if(!(x)) __VA_ARGS__;
-#define FL_ASSERT(x, ...) FL_DO_ON_ASSERT(x, printf("Assertion Failed: "), fby_logger::log(__VA_ARGS__), fby_logger::log("File: {0}\nLine: {1}\nFunction: {2}()", __FILE__, __LINE__, __FUNCTION__), FL_DEBUGBREAK())
-#define FL_BASIC_ASSERT(x) FL_DO_ON_ASSERT(x, fby_logger::log("Assertion Failed: "), fby_logger::log("File: {0}\nLine: {1}\nFunction: {2}()", __FILE__, __LINE__, __FUNCTION__), FL_DEBUGBREAK())
-#define FL_ERROR(...) FL_DO_ON_ASSERT(0, fby_logger::log(__VA_ARGS__), FL_DEBUGBREAK())
+#define FL_ASSERT(x, ...) FL_DO_ON_ASSERT(x, printf("Assertion Failed: "), flamelogger::log(__VA_ARGS__), flamelogger::log("File: {0}\nLine: {1}\nFunction: {2}()", __FILE__, __LINE__, __FUNCTION__), FL_DEBUGBREAK())
+#define FL_BASIC_ASSERT(x) FL_DO_ON_ASSERT(x, flamelogger::log("Assertion Failed: "), flamelogger::log("File: {0}\nLine: {1}\nFunction: {2}()", __FILE__, __LINE__, __FUNCTION__), FL_DEBUGBREAK())
+
+#define FL_LOG(...) flamelogger::log(__VA_ARGS__)
+#define FL_INFO(...) flamelogger::info(__VA_ARGS__)
+#define FL_WARN(...) flamelogger::warn(__VA_ARGS__)
+#define FL_ERROR(...) flamelogger::error(__VA_ARGS__)
 
 #elif defined(FL_RELEASE)
 
-#define FL_LOG(...)
+#define FL_LOGGER_INIT(project_name)
+
 #define FL_DO_ON_ASSERT(x, ...)
 #define FL_ASSERT(x, ...) if (!(x));
 #define FL_BASIC_ASSERT(x) if (!(x));
+
+#define FL_LOG(...)
+#define FL_INFO(...)
 #define FL_ERROR(...)
+#define FL_WARN(...)
 
 #endif
 

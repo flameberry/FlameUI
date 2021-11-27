@@ -3,8 +3,42 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <ctime>
+#include <iomanip>
 
-namespace fby_logger {
+#ifdef FL_XCODE_PROJ
+
+#define FL_COLOR_DEFAULT ""
+#define FL_COLOR_RED ""
+#define FL_COLOR_GREEN ""
+#define FL_COLOR_YELLOW ""
+#define FL_COLOR_PURPLE ""
+#define FL_COLOR_CYAN ""
+#define FL_COLOR_WHITE ""
+
+#define FL_COLOR_PURPLE_BOLD ""
+
+#else
+
+#define FL_COLOR_DEFAULT "\e[0m"
+#define FL_COLOR_RED "\e[0;31m"
+#define FL_COLOR_GREEN "\e[0;32m"
+#define FL_COLOR_YELLOW "\e[0;33m"
+#define FL_COLOR_PURPLE "\e[0;35m"
+#define FL_COLOR_CYAN "\e[0;36m"
+#define FL_COLOR_WHITE "\e[0;37m"
+
+#define FL_COLOR_PURPLE_BOLD "\e[1;35m"
+
+#endif
+
+namespace flamelogger {
+    /// Gets the prefix of the log message
+    std::string get_prefix();
+    /// Project Name should be set at the beginning of the program,
+    /// which will be used as a prefix to all the log messages during runtime
+    void Init(const std::string& proj_name);
+
     static std::vector<std::string> convert_params_to_string()
     {
         return {};
@@ -85,11 +119,35 @@ namespace fby_logger {
         return msg;
     }
 
+    /// Logs the message in CYAN color in the terminal
     template<typename T, typename... Args>
     static void log(const T& message, const Args&... args)
     {
         std::string output_message = format_string(message, args...);
-        std::cout << output_message << std::endl;
+        std::cout << FL_COLOR_CYAN << get_prefix() << output_message << FL_COLOR_DEFAULT << std::endl;
     }
 
+    /// Logs the message in GREEN color in the terminal
+    template<typename T, typename... Args>
+    static void info(const T& message, const Args&... args)
+    {
+        std::string output_message = format_string(message, args...);
+        std::cout << FL_COLOR_GREEN << get_prefix() << output_message << FL_COLOR_DEFAULT << std::endl;
+    }
+
+    /// Logs the message in YELLOW color in the terminal
+    template<typename T, typename... Args>
+    static void warn(const T& message, const Args&... args)
+    {
+        std::string output_message = format_string(message, args...);
+        std::cout << FL_COLOR_YELLOW << get_prefix() << output_message << FL_COLOR_DEFAULT << std::endl;
+    }
+
+    /// Logs the message in RED color in the terminal
+    template<typename T, typename... Args>
+    static void error(const T& message, const Args&... args)
+    {
+        std::string output_message = format_string(message, args...);
+        std::cout << FL_COLOR_RED << get_prefix() << output_message << FL_COLOR_DEFAULT << std::endl;
+    }
 }

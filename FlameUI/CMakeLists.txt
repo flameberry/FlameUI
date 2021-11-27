@@ -9,6 +9,10 @@ set_custom_build_properties(FlameUI)
 set_build_config_macro_for_target(FlameUI)
 target_compile_definitions(FlameUI PRIVATE GLFW_INCLUDE_NONE FL_PROJECT_DIR="${FL_SOURCE_DIR}")
 
+if(${FL_PROJ_GENERATOR} STREQUAL "Xcode")
+    target_compile_definitions(FlameUI PRIVATE FL_XCODE_PROJ)
+endif()
+
 target_include_directories(FlameUI PRIVATE ${FL_GRAPHICS_INCLUDE_DIRS})
 
 # Add dependencies

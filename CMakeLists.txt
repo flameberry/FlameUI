@@ -14,6 +14,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "")
 endif()
 
 set(FL_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/")
+set(FL_PROJ_GENERATOR "${CMAKE_GENERATOR}")
 
 # Include util functions and variables with paths to library dependencies
 include(CMake/Utils/Dependencies.cmake)
