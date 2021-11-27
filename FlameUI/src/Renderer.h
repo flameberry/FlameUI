@@ -5,8 +5,8 @@
 #include <glad/glad.h>
 #include <unordered_map>
 #include "Core.h"
-#include "Vertex.h"
 #include <GLFW/glfw3.h>
+#include "Batch.h"
 
 namespace FlameUI {
     /// Class which deals with OpenGL Framebuffer
@@ -40,7 +40,6 @@ namespace FlameUI {
         static uint32_t    GenQuadId();
         static void        OnResize();
         static GLFWwindow* GetUserGLFWwindow();
-        static glm::vec2& GetCursorPosition();
         static glm::vec2   GetViewportSize();
         static glm::vec2   GetTextDimensions(const std::string& text, float scale);
         static glm::vec2   ConvertPixelsToOpenGLValues(const glm::ivec2& value_in_pixels);
@@ -53,6 +52,7 @@ namespace FlameUI {
         static void        SetQuadDimensions(uint32_t* quadId, const glm::ivec2& dimensions_in_pixels);
         static void        SetQuadColor(uint32_t* quadId, const glm::vec4& color);
         static void        AddText(const std::string& text, const glm::ivec2& position_in_pixels, float scale, const glm::vec4& color);
+        static void        AddQuad(uint32_t* quadId, const QuadPosType& positionType, const glm::ivec2& position_in_pixels, const glm::ivec2& dimensions_in_pixels, const glm::vec4& color);
         static void        AddQuad(uint32_t* quadId, const QuadPosType& positionType, const glm::ivec2& position_in_pixels, const glm::ivec2& dimensions_in_pixels, const glm::vec4& color, const std::string& textureFilePath);
         /// Experimental function, not stable to use yet
         static void        RemoveQuad(uint32_t* quadId);
@@ -61,16 +61,16 @@ namespace FlameUI {
         static void        ChangeQuadVertices(uint32_t* quadId, const std::array<Vertex, 4>& vertices);
         static void        ChangeQuadVertices(uint32_t* quadId, const QuadPosType& positionType, const glm::ivec2& position_in_pixels = glm::ivec2(), const glm::ivec2& dimensions_in_pixels = glm::ivec2(), const glm::vec4& color = glm::vec4());
         static void        CleanUp();
+        static GLint       GetUniformLocation(const std::string& name, uint32_t shaderId);
 
-        static std::array<Vertex*, 4> GetPtrToQuadVertices(uint32_t* quadId);
+        static glm::vec2& GetCursorPosition();
+        static std::array<Vertex*, 4>               GetPtrToQuadVertices(uint32_t* quadId);
+        static std::tuple<std::string, std::string> ReadShaderSource(const std::string& filePath);
     private:
         /// Private Functions which will be used by the Renderer as Utilites
-        static std::tuple<std::string, std::string> ReadShaderSource(const std::string& filePath);
-
         static void        LoadFont(const std::string& filePath);
         static void        GetQuadVertices(std::array<Vertex, 4>* vertices, const QuadPosType& positionType, const glm::ivec2& position_in_pixels, const glm::ivec2& dimensions_in_pixels, const glm::vec4& color);
         static void        LoadTexture(uint32_t* quadId, const std::string& filePath);
-        static GLint       GetUniformLocation(const std::string& name, uint32_t shaderId);
         static void        AddQuadToTextBatch(uint32_t* quadId, const std::array<FlameUI::Vertex, 4>& vertices, uint32_t textureId);
     private:
         /// This value has to be set to whatever number of texture slots your GPU can support
@@ -79,28 +79,8 @@ namespace FlameUI {
         static const uint16_t s_Max_Indices_Per_Batch = 6 * s_Max_Quads_Per_Batch;
         static const uint16_t s_Max_Vertices_Per_Batch = 4 * s_Max_Quads_Per_Batch;
     private:
-        /// Struct containing every basic RendererIds needed for a batch of opengl quads
-        struct OpenGLIds
-        {
-            uint32_t v_bufferId, i_bufferId, v_arrayId, shaderId;
-            std::vector<uint32_t> textureIds;
-        };
         /// Struct that contains all the matrices needed by the shader, which will be stored in a Uniform Buffer
         struct UniformBufferData { glm::mat4 ProjectionMatrix; };
-        enum class BatchType { None = 0, Quad, TexturedQuad, Text };
-        struct Batch
-        {
-            Batch();
-            Batch(const BatchType& batchType);
-            ~Batch() = default;
-
-            void Init();
-            void OnDraw();
-
-            OpenGLIds           RendererIds;
-            BatchType           CurrentBatchType;
-            std::vector<Vertex> Vertices;
-        };
         struct Character
         {
             uint32_t   TextureId;  /// ID handle of the glyph texture
@@ -116,6 +96,8 @@ namespace FlameUI {
             float AscenderY;
             float DescenderY;
         };
+    public:
+        static FontProps& GetFontProps() { return s_FontProps; }
     private:
         /// AspectRatio used for converting pixel coordinates to opengl coordinates
         static float                                     s_AspectRatio;
@@ -128,7 +110,7 @@ namespace FlameUI {
         /// Stores file path of the font provided by user and the default font file path
         static std::string                               s_UserFontFilePath, s_DefaultFontFilePath;
         /// The main vector of all the batches of quads to ever exist in the program
-        static std::vector<Batch>                        s_Batches;
+        static std::vector<std::shared_ptr<Batch>>       s_Batches;
         /// Stores all the characters and their properties, which are extracted from the font provided by the user
         static std::unordered_map<char, Character>       s_Characters;
         /// Stores the size of the vieport that FlameUI is being drawn on

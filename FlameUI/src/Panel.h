@@ -15,7 +15,7 @@ namespace FlameUI {
     class Panel
     {
     public:
-        Panel(const std::string& panelName, const glm::ivec2& position_in_pixels, const glm::ivec2& dimensions_in_pixels, const glm::vec4& color, const std::string& textureFilePath);
+        Panel(const std::string& panelName, const glm::ivec2& position_in_pixels, const glm::ivec2& dimensions_in_pixels, const glm::vec4& color);
         ~Panel() = default;
 
         void            AddButton(uint32_t* quadId, const std::string& title, const glm::ivec2& dimensions_in_pixels, const glm::vec4& color, const std::string& textureFilePath);
@@ -33,7 +33,7 @@ namespace FlameUI {
         Bounds          GetBounds() const { return m_Bounds; }
         static uint16_t GetResizeAreaPadding() { return s_ResizeAreaPadding; }
 
-        static std::shared_ptr<Panel> Create(const std::string& panelName, const glm::ivec2& position_in_pixels, const glm::ivec2& dimensions_in_pixels, const glm::vec4& color, const std::string& textureFilePath);
+        static std::shared_ptr<Panel> Create(const std::string& panelName, const glm::ivec2& position_in_pixels, const glm::ivec2& dimensions_in_pixels, const glm::vec4& color);
     private:
         void ResizeLeft(const std::array<Vertex*, 4>& ptr_to_vertices, const float& cursor_pos_x);
         void ResizeRight(const std::array<Vertex*, 4>& ptr_to_vertices, const float& cursor_pos_x);
@@ -57,7 +57,7 @@ namespace FlameUI {
         bool                                 m_IsCursorInPanelArea = false;
         float                                m_OffsetX, m_OffsetY;
         constexpr static uint16_t            s_MinWidth = 10, s_MinHeight = 10;
-        constexpr static uint16_t            s_ResizeAreaPadding = 2;
+        constexpr static uint16_t            s_ResizeAreaPadding = 3;
         ResizeState                          m_ResizeState;
         DetailedResizeState                  m_DetailedResizeState;
         std::vector<std::shared_ptr<Button>> m_Buttons;

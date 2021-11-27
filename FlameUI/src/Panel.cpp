@@ -3,7 +3,7 @@
 #include "Timer.h"
 
 namespace FlameUI {
-    Panel::Panel(const std::string& panelName, const glm::ivec2& position_in_pixels, const glm::ivec2& dimensions_in_pixels, const glm::vec4& color, const std::string& textureFilePath)
+    Panel::Panel(const std::string& panelName, const glm::ivec2& position_in_pixels, const glm::ivec2& dimensions_in_pixels, const glm::vec4& color)
         : m_PanelName(panelName), m_Position(position_in_pixels),
         m_Dimensions(dimensions_in_pixels), m_InnerPadding(15, 10),
         m_Color(color), m_ZIndex(0.0f), m_ResizeState(ResizeState::None),
@@ -13,7 +13,7 @@ namespace FlameUI {
         m_Bounds.Right = m_Position.x + (m_Dimensions.x / 2);
         m_Bounds.Bottom = m_Position.y - (m_Dimensions.y / 2);
         m_Bounds.Top = m_Position.y + (m_Dimensions.y / 2);
-        Renderer::AddQuad(&m_PanelQuadId, FL_QUAD_POS_CENTER, position_in_pixels, dimensions_in_pixels, color, textureFilePath);
+        Renderer::AddQuad(&m_PanelQuadId, FL_QUAD_POS_CENTER, position_in_pixels, dimensions_in_pixels, color);
     }
 
     void Panel::AddButton(
@@ -392,8 +392,9 @@ namespace FlameUI {
         }
     }
 
-    std::shared_ptr<Panel> Panel::Create(const std::string& panelName, const glm::ivec2& position_in_pixels, const glm::ivec2& dimensions_in_pixels, const glm::vec4& color, const std::string& textureFilePath)
+    std::shared_ptr<Panel> Panel::Create(const std::string& panelName, const glm::ivec2& position_in_pixels,
+        const glm::ivec2& dimensions_in_pixels, const glm::vec4& color)
     {
-        return std::make_shared<Panel>(panelName, position_in_pixels, dimensions_in_pixels, color, textureFilePath);
+        return std::make_shared<Panel>(panelName, position_in_pixels, dimensions_in_pixels, color);
     }
 }

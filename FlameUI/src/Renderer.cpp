@@ -15,7 +15,7 @@ namespace FlameUI {
     std::unordered_map<uint32_t, uint32_t[2]>     Renderer::s_QuadDictionary;
     std::unordered_map<std::string, GLint>        Renderer::m_uniformloc_cache;
     std::unordered_map<char, Renderer::Character> Renderer::s_Characters;
-    std::vector<Renderer::Batch>                  Renderer::s_Batches;
+    std::vector<std::shared_ptr<Batch>>           Renderer::s_Batches;
     uint32_t                                      Renderer::s_UniformBufferId;
     float                                         Renderer::s_AspectRatio = (float)(1280.0f / 720.0f);
     std::string                                   Renderer::s_UserFontFilePath = "";
@@ -114,203 +114,6 @@ namespace FlameUI {
     }
 
     ///
-    /// Batch Struct Function Implementations --------------------------------------------------------------------------------
-    ///
-
-    Renderer::Batch::Batch()
-    {
-        Vertices.reserve(s_Max_Vertices_Per_Batch);
-    }
-
-    Renderer::Batch::Batch(const BatchType& batchType)
-        : CurrentBatchType(batchType)
-    {
-        Vertices.reserve(s_Max_Vertices_Per_Batch);
-    }
-
-    void Renderer::Batch::Init()
-    {
-        uint32_t indices[s_Max_Indices_Per_Batch];
-        size_t offset = 0;
-        for (size_t i = 0; i < s_Max_Indices_Per_Batch; i += 6)
-        {
-            indices[0 + i] = 1 + offset;
-            indices[1 + i] = 2 + offset;
-            indices[2 + i] = 3 + offset;
-
-            indices[3 + i] = 3 + offset;
-            indices[4 + i] = 0 + offset;
-            indices[5 + i] = 1 + offset;
-
-            offset += 4;
-        }
-
-        GL_CHECK_ERROR(glGenVertexArrays(1, &RendererIds.v_arrayId));
-        GL_CHECK_ERROR(glBindVertexArray(RendererIds.v_arrayId));
-
-        GL_CHECK_ERROR(glGenBuffers(1, &RendererIds.v_bufferId));
-        GL_CHECK_ERROR(glBindBuffer(GL_ARRAY_BUFFER, RendererIds.v_bufferId));
-        GL_CHECK_ERROR(glBufferData(GL_ARRAY_BUFFER, s_Max_Vertices_Per_Batch * sizeof(Vertex), nullptr, GL_DYNAMIC_DRAW));
-
-        GL_CHECK_ERROR(glBindVertexArray(RendererIds.v_arrayId));
-
-        GL_CHECK_ERROR(glEnableVertexAttribArray(0));
-        GL_CHECK_ERROR(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 10 * sizeof(float), (void*)offsetof(Vertex, position)));
-        GL_CHECK_ERROR(glEnableVertexAttribArray(1));
-        GL_CHECK_ERROR(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 10 * sizeof(float), (void*)offsetof(Vertex, color)));
-        GL_CHECK_ERROR(glEnableVertexAttribArray(2));
-        GL_CHECK_ERROR(glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 10 * sizeof(float), (void*)offsetof(Vertex, texture_uv)));
-        GL_CHECK_ERROR(glEnableVertexAttribArray(3));
-        GL_CHECK_ERROR(glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, 10 * sizeof(float), (void*)offsetof(Vertex, texture_index)));
-
-        GL_CHECK_ERROR(glGenBuffers(1, &RendererIds.i_bufferId));
-        GL_CHECK_ERROR(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, RendererIds.i_bufferId));
-        GL_CHECK_ERROR(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW));
-
-        GL_CHECK_ERROR(glBindVertexArray(RendererIds.v_arrayId));
-
-        std::string shaderFilePath = "";
-        switch (CurrentBatchType)
-        {
-        case BatchType::Quad:
-            shaderFilePath = FL_PROJECT_DIR + std::string("/FlameUI/resources/shaders/Quad.glsl");
-            break;
-        case BatchType::Text:
-            shaderFilePath = FL_PROJECT_DIR + std::string("/FlameUI/resources/shaders/Font.glsl");
-            break;
-        default:
-            break;
-        }
-
-        auto [vertexSource, fragmentSource] = ReadShaderSource(shaderFilePath);
-        // Create an empty vertex shader handle
-        GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-
-        // Send the vertex shader source code to GL
-        // Note that std::string's .c_str is NULL character terminated.
-        const GLchar* source = (const GLchar*)vertexSource.c_str();
-        glShaderSource(vertex_shader, 1, &source, 0);
-
-        // Compile the vertex shader
-        glCompileShader(vertex_shader);
-
-        GLint isCompiled = 0;
-        glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &isCompiled);
-        if (isCompiled == GL_FALSE)
-        {
-            GLint maxLength = 0;
-            glGetShaderiv(vertex_shader, GL_INFO_LOG_LENGTH, &maxLength);
-
-            // The maxLength includes the NULL character
-            std::vector<GLchar> infoLog(maxLength);
-            glGetShaderInfoLog(vertex_shader, maxLength, &maxLength, &infoLog[0]);
-
-            // We don't need the shader anymore.
-            glDeleteShader(vertex_shader);
-
-            FL_ERROR("Error compiling VERTEX shader:\n{0}", infoLog.data());
-        }
-
-        // Create an empty fragment shader handle
-        GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-
-        // Send the fragment shader source code to GL
-        // Note that std::string's .c_str is NULL character terminated.
-        source = (const GLchar*)fragmentSource.c_str();
-        glShaderSource(fragment_shader, 1, &source, 0);
-
-        // Compile the fragment shader
-        glCompileShader(fragment_shader);
-
-        glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &isCompiled);
-        if (isCompiled == GL_FALSE)
-        {
-            GLint maxLength = 0;
-            glGetShaderiv(fragment_shader, GL_INFO_LOG_LENGTH, &maxLength);
-
-            // The maxLength includes the NULL character
-            std::vector<GLchar> infoLog(maxLength);
-            glGetShaderInfoLog(fragment_shader, maxLength, &maxLength, &infoLog[0]);
-
-            // We don't need the shader anymore.
-            glDeleteShader(fragment_shader);
-            // Either of them. Don't leak shaders.
-            glDeleteShader(vertex_shader);
-
-            FL_ERROR("Error compiling FRAGMENT shader:\n{0}", infoLog.data());
-        }
-
-        // Vertex and fragment shaders are successfully compiled.
-        // Now time to link them together into a program.
-        // Get a program object.
-        RendererIds.shaderId = glCreateProgram();
-
-        // Attach our shaders to our program
-        glAttachShader(RendererIds.shaderId, vertex_shader);
-        glAttachShader(RendererIds.shaderId, fragment_shader);
-
-        // Link our program
-        glLinkProgram(RendererIds.shaderId);
-
-        // Note the different functions here: glGetProgram* instead of glGetShader*.
-        GLint isLinked = 0;
-        glGetProgramiv(RendererIds.shaderId, GL_LINK_STATUS, (int*)&isLinked);
-        if (isLinked == GL_FALSE)
-        {
-            GLint maxLength = 0;
-            glGetProgramiv(RendererIds.shaderId, GL_INFO_LOG_LENGTH, &maxLength);
-
-            // The maxLength includes the NULL character
-            std::vector<GLchar> infoLog(maxLength);
-            glGetProgramInfoLog(RendererIds.shaderId, maxLength, &maxLength, &infoLog[0]);
-
-            // We don't need the program anymore.
-            glDeleteProgram(RendererIds.shaderId);
-            // Don't leak shaders either.
-            glDeleteShader(vertex_shader);
-            glDeleteShader(fragment_shader);
-
-            FL_ERROR("Error linking shader program:\n{0}", infoLog.data());
-        }
-
-        // Always detach shaders after a successful link.
-        glDetachShader(RendererIds.shaderId, vertex_shader);
-        glDetachShader(RendererIds.shaderId, fragment_shader);
-
-        GL_CHECK_ERROR(glUseProgram(RendererIds.shaderId));
-        int samplers[s_Max_Texture_Slots];
-        for (uint16_t i = 0; i < s_Max_Texture_Slots; i++)
-            samplers[i] = (int)i;
-        GL_CHECK_ERROR(glUniform1iv(GetUniformLocation("u_TextureSamplers", RendererIds.shaderId), s_Max_Texture_Slots, samplers));
-
-        if (CurrentBatchType == BatchType::Text)
-        {
-            GL_CHECK_ERROR(glUniform1f(GetUniformLocation("u_PixelRange", RendererIds.shaderId), s_FontProps.PixelRange));
-            GL_CHECK_ERROR(glUniform1f(GetUniformLocation("u_Strength", RendererIds.shaderId), s_FontProps.Strength));
-        }
-        GL_CHECK_ERROR(glUseProgram(0));
-    }
-
-    void Renderer::Batch::OnDraw()
-    {
-        if (Vertices.size())
-        {
-            GL_CHECK_ERROR(glBindBuffer(GL_ARRAY_BUFFER, RendererIds.v_bufferId));
-            GL_CHECK_ERROR(glBufferSubData(GL_ARRAY_BUFFER, 0, Vertices.size() * sizeof(Vertex), Vertices.data()));
-
-            for (uint8_t i = 0; i < RendererIds.textureIds.size(); i++)
-            {
-                GL_CHECK_ERROR(glActiveTexture(GL_TEXTURE0 + i));
-                GL_CHECK_ERROR(glBindTexture(GL_TEXTURE_2D, RendererIds.textureIds[i]));
-            }
-
-            GL_CHECK_ERROR(glUseProgram(RendererIds.shaderId));
-            GL_CHECK_ERROR(glBindVertexArray(RendererIds.v_arrayId));
-            GL_CHECK_ERROR(glDrawElements(GL_TRIANGLES, s_Max_Indices_Per_Batch, GL_UNSIGNED_INT, 0));
-        }
-    }
-
-    ///
     /// Renderer Function Implementations --------------------------------------------------------------------------------
     ///
 
@@ -364,6 +167,7 @@ namespace FlameUI {
         if (s_UserFontFilePath == "")
             s_UserFontFilePath = s_DefaultFontFilePath;
         LoadFont(s_UserFontFilePath);
+        FL_INFO("Loaded Font from path \"{0}\"", s_UserFontFilePath);
 
         /* Create Uniform Buffer */
         GL_CHECK_ERROR(glGenBuffers(1, &s_UniformBufferId));
@@ -418,23 +222,17 @@ namespace FlameUI {
         (*vertices)[3].texture_uv = { 1.0f, 0.0f };
     }
 
-    void Renderer::AddQuad(
-        uint32_t* quadId,
-        const QuadPosType& positionType,
-        const glm::ivec2& position_in_pixels,
-        const glm::ivec2& dimensions_in_pixels,
-        const glm::vec4& color,
-        const std::string& textureFilePath
-    )
+    void Renderer::AddQuad(uint32_t* quadId, const QuadPosType& positionType, const glm::ivec2& position_in_pixels,
+        const glm::ivec2& dimensions_in_pixels, const glm::vec4& color)
     {
         std::array<Vertex, 4> vertices;
         GetQuadVertices(&vertices, positionType, position_in_pixels, dimensions_in_pixels, color);
 
         static uint32_t quad_id = 0;
-        if ((!quad_id) || (s_Batches[s_QuadDictionary[quad_id][0]].Vertices.size() == s_Max_Vertices_Per_Batch))
+        if ((!quad_id) || (s_Batches[s_QuadDictionary[quad_id][0]]->IsFull()))
         {
-            s_Batches.emplace_back(BatchType::Quad);
-            s_Batches.back().Init();
+            s_Batches.push_back(std::make_shared<BasicQuadBatch>());
+            s_Batches.back()->Init();
 
             quad_id = GenQuadId();
             if (quadId)
@@ -442,12 +240,9 @@ namespace FlameUI {
             s_QuadDictionary[quad_id][0] = s_Batches.size() - 1;
             s_QuadDictionary[quad_id][1] = 0;
 
-            for (auto& vertex : vertices)
-                s_Batches.back().Vertices.push_back(vertex);
-
-            LoadTexture(&quad_id, textureFilePath);
+            s_Batches.back()->AddQuad(vertices, nullptr);
         }
-        else if ((quad_id) && (s_Batches[s_QuadDictionary[quad_id][0]].Vertices.size() < s_Max_Vertices_Per_Batch))
+        else if ((quad_id) && (!s_Batches[s_QuadDictionary[quad_id][0]]->IsFull()))
         {
             uint32_t previous_quad_id = quad_id;
 
@@ -456,10 +251,42 @@ namespace FlameUI {
                 *quadId = quad_id;
 
             s_QuadDictionary[quad_id][0] = s_QuadDictionary[previous_quad_id][0];
-            s_QuadDictionary[quad_id][1] = s_QuadDictionary[previous_quad_id][1] + 4;
+            s_Batches[s_QuadDictionary[quad_id][0]]->AddQuad(vertices, &s_QuadDictionary[quad_id][1]);
+            FL_LOG("location is {0}", s_QuadDictionary[quad_id][1]);
+        }
+    }
 
-            for (auto& vertex : vertices)
-                s_Batches[s_QuadDictionary[quad_id][0]].Vertices.push_back(vertex);
+    void Renderer::AddQuad(uint32_t* quadId, const QuadPosType& positionType, const glm::ivec2& position_in_pixels,
+        const glm::ivec2& dimensions_in_pixels, const glm::vec4& color, const std::string& textureFilePath)
+    {
+        std::array<Vertex, 4> vertices;
+        GetQuadVertices(&vertices, positionType, position_in_pixels, dimensions_in_pixels, color);
+
+        static uint32_t quad_id = 0;
+        if ((!quad_id) || (s_Batches[s_QuadDictionary[quad_id][0]]->IsFull()))
+        {
+            s_Batches.push_back(std::make_shared<TexturedQuadBatch>());
+            s_Batches.back()->Init();
+
+            quad_id = GenQuadId();
+            if (quadId)
+                *quadId = quad_id;
+            s_QuadDictionary[quad_id][0] = s_Batches.size() - 1;
+            s_QuadDictionary[quad_id][1] = 0;
+
+            s_Batches.back()->AddQuad(vertices, nullptr);
+            LoadTexture(&quad_id, textureFilePath);
+        }
+        else if ((quad_id) && (!s_Batches[s_QuadDictionary[quad_id][0]]->IsFull()))
+        {
+            uint32_t previous_quad_id = quad_id;
+
+            quad_id = GenQuadId();
+            if (quadId)
+                *quadId = quad_id;
+
+            s_QuadDictionary[quad_id][0] = s_QuadDictionary[previous_quad_id][0];
+            s_Batches[s_QuadDictionary[quad_id][0]]->AddQuad(vertices, &s_QuadDictionary[quad_id][1]);
 
             LoadTexture(&quad_id, textureFilePath);
         }
@@ -467,64 +294,6 @@ namespace FlameUI {
 
     void Renderer::RemoveQuad(uint32_t* quadId)
     {
-        if (s_QuadDictionary.find(*quadId) != s_QuadDictionary.end())
-        {
-            if (s_Batches[0].Vertices.size() > 4)
-            {
-                for (uint32_t index = s_Batches.size() - 1; index >= 0; index--)
-                {
-                    if (s_Batches[index].CurrentBatchType == BatchType::Quad)
-                    {
-                        if ((s_QuadDictionary[*quadId][0] != index) && (s_QuadDictionary[*quadId][1] != s_Batches[index].Vertices.size() - 4))
-                        {
-                            uint16_t j = 0;
-                            for (uint16_t i = s_Batches[index].Vertices.size() - 4; i != s_Batches[index].Vertices.size() - 1; i++)
-                            {
-                                s_Batches[s_QuadDictionary[*quadId][0]].Vertices[s_QuadDictionary[*quadId][1] + j] = s_Batches[index].Vertices[i];
-                                j++;
-                            }
-
-                            s_Batches[s_QuadDictionary[*quadId][0]].RendererIds.textureIds[s_QuadDictionary[*quadId][1] / 4] = s_Batches[index].RendererIds.textureIds.back();
-                            s_Batches[index].RendererIds.textureIds.pop_back();
-
-                            for (uint16_t i = 0; i < 4; i++)
-                                s_Batches[index].Vertices.pop_back();
-
-                            for (std::unordered_map<uint32_t, uint32_t[2]>::iterator i = s_QuadDictionary.begin(); i != s_QuadDictionary.end(); i++)
-                            {
-                                if (((*i).second[0] == index) && ((*i).second[1] == (uint32_t)s_Batches[index].Vertices.size() - 5))
-                                {
-                                    (*i).second[0] = s_QuadDictionary[*quadId][0];
-                                    (*i).second[1] = s_QuadDictionary[*quadId][1];
-
-                                    break;
-                                }
-                            }
-                            s_QuadDictionary.erase(*quadId);
-                        }
-                        else
-                        {
-                            for (uint16_t i = 0; i < 4; i++)
-                                s_Batches[index].Vertices.pop_back();
-                            s_Batches[index].RendererIds.textureIds.pop_back();
-                            s_QuadDictionary.erase(*quadId);
-                        }
-                        break;
-                    }
-                }
-            }
-            else if ((s_Batches[0].CurrentBatchType == BatchType::Quad) && (s_Batches[0].Vertices.size() <= 4))
-            {
-                if (s_Batches[0].Vertices.size())
-                {
-                    for (uint16_t i = 0; i < 4; i++)
-                        s_Batches[0].Vertices.pop_back();
-                    for (std::unordered_map<uint32_t, uint32_t[2]>::iterator it = s_QuadDictionary.begin(); it != s_QuadDictionary.end(); it++)
-                        s_QuadDictionary.erase((*it).first);
-                    s_Batches[0].RendererIds.textureIds.pop_back();
-                }
-            }
-        }
     }
 
     void Renderer::AddQuadToTextBatch(
@@ -534,10 +303,10 @@ namespace FlameUI {
     )
     {
         static uint32_t quad_id = 0;
-        if ((!quad_id) || (s_Batches[s_QuadDictionary[quad_id][0]].Vertices.size() == s_Max_Vertices_Per_Batch))
+        if ((!quad_id) || (s_Batches[s_QuadDictionary[quad_id][0]]->IsFull()))
         {
-            s_Batches.emplace_back(BatchType::Text);
-            s_Batches.back().Init();
+            s_Batches.push_back(std::make_shared<TextBatch>());
+            s_Batches.back()->Init();
 
             quad_id = GenQuadId();
             if (quadId)
@@ -545,12 +314,10 @@ namespace FlameUI {
             s_QuadDictionary[quad_id][0] = s_Batches.size() - 1;
             s_QuadDictionary[quad_id][1] = 0;
 
-            for (auto& vertex : vertices)
-                s_Batches.back().Vertices.push_back(vertex);
-
-            s_Batches.back().RendererIds.textureIds.push_back(textureId);
+            s_Batches.back()->AddQuad(vertices, nullptr);
+            s_Batches.back()->AddTextureId(textureId);
         }
-        else if ((quad_id) && (s_Batches[s_QuadDictionary[quad_id][0]].Vertices.size() < s_Max_Vertices_Per_Batch))
+        else if ((quad_id) && (!s_Batches[s_QuadDictionary[quad_id][0]]->IsFull()))
         {
             uint32_t previous_quad_id = quad_id;
             quad_id = GenQuadId();
@@ -558,12 +325,9 @@ namespace FlameUI {
                 *quadId = quad_id;
 
             s_QuadDictionary[quad_id][0] = s_QuadDictionary[previous_quad_id][0];
-            s_QuadDictionary[quad_id][1] = s_QuadDictionary[previous_quad_id][1] + 4;
 
-            for (auto& vertex : vertices)
-                s_Batches[s_QuadDictionary[previous_quad_id][0]].Vertices.push_back(vertex);
-
-            s_Batches[s_QuadDictionary[previous_quad_id][0]].RendererIds.textureIds.push_back(textureId);
+            s_Batches[s_QuadDictionary[quad_id][0]]->AddQuad(vertices, &s_QuadDictionary[quad_id][1]);
+            s_Batches[s_QuadDictionary[quad_id][0]]->AddTextureId(textureId);
         }
     }
 
@@ -626,7 +390,7 @@ namespace FlameUI {
         GL_CHECK_ERROR(glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(s_UniformBufferData.ProjectionMatrix)));
 
         for (auto& batch : s_Batches)
-            batch.OnDraw();
+            batch->OnDraw();
 
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
@@ -715,8 +479,7 @@ namespace FlameUI {
 
     void Renderer::SetQuadZIndex(uint32_t* quadId, float z)
     {
-        for (uint16_t i = 0; i < 4; i++)
-            s_Batches[s_QuadDictionary[*quadId][0]].Vertices[s_QuadDictionary[*quadId][1] + i].position.z = z;
+        s_Batches[s_QuadDictionary[*quadId][0]]->SetQuadZIndex(s_QuadDictionary[*quadId][1], z);
     }
 
     void Renderer::SetQuadPosition(uint32_t* quadId, const glm::ivec2& position_in_pixels)
@@ -763,30 +526,20 @@ namespace FlameUI {
 
     void Renderer::ChangeQuadVertices(uint32_t* quadId, const std::array<Vertex, 4>& vertices)
     {
-        for (uint8_t i = 0; i < 4; i++)
-            s_Batches[s_QuadDictionary[*quadId][0]].Vertices[s_QuadDictionary[*quadId][1] + i] = vertices[i];
+        s_Batches[s_QuadDictionary[*quadId][0]]->SetQuadVertices(s_QuadDictionary[*quadId][1], vertices);
     }
 
-    void Renderer::ChangeQuadVertices(
-        uint32_t* quadId,
-        const QuadPosType& positionType,
-        const glm::ivec2& position_in_pixels,
-        const glm::ivec2& dimensions_in_pixels,
-        const glm::vec4& color
-    )
+    void Renderer::ChangeQuadVertices(uint32_t* quadId, const QuadPosType& positionType, const glm::ivec2& position_in_pixels,
+        const glm::ivec2& dimensions_in_pixels, const glm::vec4& color)
     {
         std::array<Vertex, 4> vertices;
         GetQuadVertices(&vertices, positionType, position_in_pixels, dimensions_in_pixels, color);
-        for (uint8_t i = 0; i < 4; i++)
-            s_Batches[s_QuadDictionary[*quadId][0]].Vertices[s_QuadDictionary[*quadId][1] + i] = vertices[i];
+        s_Batches[s_QuadDictionary[*quadId][0]]->SetQuadVertices(s_QuadDictionary[*quadId][1], vertices);
     }
 
     std::array<Vertex*, 4>Renderer::GetPtrToQuadVertices(uint32_t* quadId)
     {
-        std::array<Vertex*, 4> vertices;
-        for (uint16_t i = 0; i < 4; i++)
-            vertices[i] = &(s_Batches[s_QuadDictionary[*quadId][0]].Vertices[s_QuadDictionary[*quadId][1] + i]);
-        return vertices;
+        return s_Batches[s_QuadDictionary[*quadId][0]]->GetPtrToQuadVertices(s_QuadDictionary[*quadId][1]);
     }
 
     glm::ivec2 Renderer::ConvertOpenGLValuesToPixels(const glm::vec2& opengl_coords)
@@ -811,57 +564,40 @@ namespace FlameUI {
 
     void Renderer::LoadTexture(uint32_t* quadId, const std::string& filePath)
     {
-        static uint16_t slot = 0;
-        if (filePath != "")
+        stbi_set_flip_vertically_on_load(true);
+
+        int width, height, channels;
+        unsigned char* data = stbi_load(filePath.c_str(), &width, &height, &channels, 0);
+
+        FL_ASSERT(data, "Failed to load texture from \"{0}\"", filePath);
+
+        GLenum internalFormat = 0, dataFormat = 0;
+        if (channels == 4)
         {
-            FL_ASSERT(s_Batches[s_QuadDictionary[*quadId][0]].RendererIds.textureIds.size() < s_Max_Texture_Slots, "Texture Slots are full!");
-            stbi_set_flip_vertically_on_load(true);
-
-            int width, height, channels;
-            unsigned char* data = stbi_load(filePath.c_str(), &width, &height, &channels, 0);
-
-            FL_ASSERT(data, "Failed to load texture from \"{0}\"", filePath);
-
-            GLenum internalFormat = 0, dataFormat = 0;
-            if (channels == 4)
-            {
-                internalFormat = GL_RGBA8;
-                dataFormat = GL_RGBA;
-            }
-            else if (channels == 3)
-            {
-                internalFormat = GL_RGB8;
-                dataFormat = GL_RGB;
-            }
-
-            uint32_t textureId;
-            GL_CHECK_ERROR(glGenTextures(1, &textureId));
-            GL_CHECK_ERROR(glActiveTexture(GL_TEXTURE0 + slot));
-            GL_CHECK_ERROR(glBindTexture(GL_TEXTURE_2D, textureId));
-
-            GL_CHECK_ERROR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-            GL_CHECK_ERROR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-            GL_CHECK_ERROR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
-            GL_CHECK_ERROR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
-
-            GL_CHECK_ERROR(glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, dataFormat, GL_UNSIGNED_BYTE, data));
-            GL_CHECK_ERROR(glGenerateMipmap(GL_TEXTURE_2D));
-
-            stbi_image_free(data);
-
-            s_Batches[s_QuadDictionary[*quadId][0]].RendererIds.textureIds.push_back(textureId);
-
-            uint16_t index = s_QuadDictionary[*quadId][1];
-            for (uint8_t j = 0; j < 4; j++)
-                s_Batches[s_QuadDictionary[*quadId][0]].Vertices[index + j].texture_index = (float)slot;
+            internalFormat = GL_RGBA8;
+            dataFormat = GL_RGBA;
         }
-        else
+        else if (channels == 3)
         {
-            s_Batches[s_QuadDictionary[*quadId][0]].RendererIds.textureIds.emplace_back(0);
+            internalFormat = GL_RGB8;
+            dataFormat = GL_RGB;
         }
-        slot++;
-        if (slot == 16)
-            slot = 0;
+
+        uint32_t textureId;
+        GL_CHECK_ERROR(glGenTextures(1, &textureId));
+        GL_CHECK_ERROR(glBindTexture(GL_TEXTURE_2D, textureId));
+
+        GL_CHECK_ERROR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+        GL_CHECK_ERROR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+        GL_CHECK_ERROR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+        GL_CHECK_ERROR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+
+        GL_CHECK_ERROR(glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, dataFormat, GL_UNSIGNED_BYTE, data));
+        GL_CHECK_ERROR(glGenerateMipmap(GL_TEXTURE_2D));
+
+        stbi_image_free(data);
+
+        s_Batches[s_QuadDictionary[*quadId][0]]->AddTextureId(textureId);
     }
 
     std::tuple<std::string, std::string> Renderer::ReadShaderSource(const std::string& filePath)
@@ -912,14 +648,5 @@ namespace FlameUI {
         glUseProgram(0);
         glBindTexture(GL_TEXTURE_2D, 0);
         glBindVertexArray(0);
-        for (auto batch : s_Batches)
-        {
-            glDeleteBuffers(1, &batch.RendererIds.v_bufferId);
-            glDeleteBuffers(1, &batch.RendererIds.i_bufferId);
-            glDeleteVertexArrays(1, &batch.RendererIds.v_arrayId);
-            glDeleteProgram(batch.RendererIds.shaderId);
-            for (auto& textureId : batch.RendererIds.textureIds)
-                glDeleteTextures(1, &textureId);
-        }
     }
 }
