@@ -3,9 +3,10 @@
 #include <string>
 #include <sstream>
 #include <vector>
-#include <ctime>
-#include <iomanip>
 
+/// Xcode doesn't support integrated terminal output by default, so the escape characters for coloring output are printed out
+/// as it is, which just creates a mess, so the macro `FL_XCODE_PROJ` is defined by CMake, if the cmake generator is `Xcode`
+/// and the macros are defined as `""`
 #ifdef FL_XCODE_PROJ
 
 #define FL_COLOR_DEFAULT ""
@@ -16,8 +17,6 @@
 #define FL_COLOR_CYAN ""
 #define FL_COLOR_WHITE ""
 
-#define FL_COLOR_PURPLE_BOLD ""
-
 #else
 
 #define FL_COLOR_DEFAULT "\e[0m"
@@ -27,23 +26,21 @@
 #define FL_COLOR_PURPLE "\e[0;35m"
 #define FL_COLOR_CYAN "\e[0;36m"
 #define FL_COLOR_WHITE "\e[0;37m"
-
-#define FL_COLOR_PURPLE_BOLD "\e[1;35m"
-
 #endif
 
 namespace flamelogger {
-    /// Gets the prefix of the log message
-    std::string get_prefix();
-    /// Project Name should be set at the beginning of the program,
-    /// which will be used as a prefix to all the log messages during runtime
-    void Init(const std::string& proj_name);
+    /// This enum class is currently only used for adding log level prefix to all logger messages
+    enum class LogLevel { TRACE = 0, LOG, INFO, WARNING, ERROR };
 
+    std::string get_current_time_string();
+
+    /// Just a default function for the templated function below
     static std::vector<std::string> convert_params_to_string()
     {
         return {};
     }
 
+    /// This function converts all arguments to strings, regardless of them being float, int, double, unsigned int, etc.
     template<typename T, typename... Args>
     static std::vector<std::string> convert_params_to_string(const T& message, const Args&... args)
     {
@@ -61,6 +58,8 @@ namespace flamelogger {
         return string_set;
     }
 
+    /// This function formats the log message, so that all portions of string that contain '{`number`}'
+    /// get replaced by the arguments provided next to the main message string
     template<typename T, typename... Args>
     static std::string format_string(const T& message, const Args&... args)
     {
@@ -119,35 +118,75 @@ namespace flamelogger {
         return msg;
     }
 
-    /// Logs the message in CYAN color in the terminal
-    template<typename T, typename... Args>
-    static void log(const T& message, const Args&... args)
+    class FLInstance
     {
-        std::string output_message = format_string(message, args...);
-        std::cout << FL_COLOR_CYAN << get_prefix() << output_message << FL_COLOR_DEFAULT << std::endl;
-    }
+    public:
+        /// Instance Name should be set at the beginning of the program,
+        /// which will be used as a prefix to all the log messages during runtime
+        FLInstance(const char* instanceName);
+        static std::shared_ptr<FLInstance> Create(const char* instanceName);
+        void SetLogLevel(const LogLevel& logLevel);
 
-    /// Logs the message in GREEN color in the terminal
-    template<typename T, typename... Args>
-    static void info(const T& message, const Args&... args)
-    {
-        std::string output_message = format_string(message, args...);
-        std::cout << FL_COLOR_GREEN << get_prefix() << output_message << FL_COLOR_DEFAULT << std::endl;
-    }
+        /// Logs the message in CYAN color in the terminal
+        template<typename T, typename... Args>
+        void log(const T& message, const Args&... args)
+        {
+            if (m_CurrentLogLevel <= LogLevel::LOG)
+            {
+                std::string output_message = format_string(message, args...);
+                std::cout << FL_COLOR_CYAN << get_prefix(LogLevel::LOG) << output_message << FL_COLOR_DEFAULT << std::endl;
+            }
+        }
 
-    /// Logs the message in YELLOW color in the terminal
-    template<typename T, typename... Args>
-    static void warn(const T& message, const Args&... args)
-    {
-        std::string output_message = format_string(message, args...);
-        std::cout << FL_COLOR_YELLOW << get_prefix() << output_message << FL_COLOR_DEFAULT << std::endl;
-    }
+        /// Logs the message in WHITE color in the terminal
+        template<typename T, typename... Args>
+        void trace(const T& message, const Args&... args)
+        {
+            if (m_CurrentLogLevel <= LogLevel::TRACE)
+            {
+                std::string output_message = format_string(message, args...);
+                std::cout << FL_COLOR_WHITE << get_prefix(LogLevel::TRACE) << output_message << FL_COLOR_DEFAULT << std::endl;
+            }
+        }
 
-    /// Logs the message in RED color in the terminal
-    template<typename T, typename... Args>
-    static void error(const T& message, const Args&... args)
-    {
-        std::string output_message = format_string(message, args...);
-        std::cout << FL_COLOR_RED << get_prefix() << output_message << FL_COLOR_DEFAULT << std::endl;
-    }
+        /// Logs the message in GREEN color in the terminal
+        template<typename T, typename... Args>
+        void info(const T& message, const Args&... args)
+        {
+            if (m_CurrentLogLevel <= LogLevel::INFO)
+            {
+                std::string output_message = format_string(message, args...);
+                std::cout << FL_COLOR_GREEN << get_prefix(LogLevel::INFO) << output_message << FL_COLOR_DEFAULT << std::endl;
+            }
+        }
+
+        /// Logs the message in YELLOW color in the terminal
+        template<typename T, typename... Args>
+        void warn(const T& message, const Args&... args)
+        {
+            if (m_CurrentLogLevel <= LogLevel::WARNING)
+            {
+                std::string output_message = format_string(message, args...);
+                std::cout << FL_COLOR_YELLOW << get_prefix(LogLevel::WARNING) << output_message << FL_COLOR_DEFAULT << std::endl;
+            }
+        }
+
+        /// Logs the message in RED color in the terminal
+        template<typename T, typename... Args>
+        void error(const T& message, const Args&... args)
+        {
+            if (m_CurrentLogLevel <= LogLevel::ERROR)
+            {
+                std::string output_message = format_string(message, args...);
+                std::cout << FL_COLOR_RED << get_prefix(LogLevel::ERROR) << output_message << FL_COLOR_DEFAULT << std::endl;
+            }
+        }
+    private:
+        /// Gets the prefix of the log message
+        std::string get_prefix(const LogLevel& logLevel);
+    private:
+        /// The name which is used in prefix of the log message
+        const char* m_InstanceName = "";
+        LogLevel m_CurrentLogLevel;
+    };
 }

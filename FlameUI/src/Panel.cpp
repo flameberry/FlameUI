@@ -3,11 +3,13 @@
 #include "Timer.h"
 
 namespace FlameUI {
-    Panel::Panel(const std::string& panelName, const glm::ivec2& position_in_pixels, const glm::ivec2& dimensions_in_pixels, const glm::vec4& color)
+    Panel::Panel(const std::string& panelName, const glm::vec2& position_in_pixels, const glm::vec2& dimensions_in_pixels, const glm::vec4& color)
         : m_PanelName(panelName), m_Position(position_in_pixels),
         m_Dimensions(dimensions_in_pixels), m_InnerPadding(15, 10),
         m_Color(color), m_ZIndex(0.0f), m_ResizeState(ResizeState::None),
-        m_DetailedResizeState(DetailedResizeState::NotResizing), m_CursorState(NULL)
+        m_DetailedResizeState(DetailedResizeState::NotResizing), m_CursorState(NULL),
+        m_DockState(DockState::None), m_DetailedDockState(DetailedDockState::NotDocked),
+        m_DockingPosition(0.0f)
     {
         m_Bounds.Left = m_Position.x - (m_Dimensions.x / 2);
         m_Bounds.Right = m_Position.x + (m_Dimensions.x / 2);
@@ -16,19 +18,14 @@ namespace FlameUI {
         Renderer::AddQuad(&m_PanelQuadId, FL_QUAD_POS_CENTER, position_in_pixels, dimensions_in_pixels, color);
     }
 
-    void Panel::AddButton(
-        uint32_t* quadId,
-        const std::string& title,
-        const glm::ivec2& dimensions_in_pixels,
-        const glm::vec4& color,
-        const std::string& textureFilePath
-    )
+    void Panel::AddButton(const std::string& title, const glm::vec2& dimensions_in_pixels,
+        const glm::vec4& color, const std::string& textureFilePath)
     {
         static int top_element_position = m_Position.y + ((int)m_Dimensions.y / 2);
         static int bottom_element_position = m_Position.y - ((int)m_Dimensions.y / 2);
         if (top_element_position - bottom_element_position - 2 * m_InnerPadding.y > 0)
         {
-            glm::ivec2 dimensions = dimensions_in_pixels;
+            glm::vec2 dimensions = dimensions_in_pixels;
 
             uint32_t quad_id;
             bool is_too_big_X = dimensions_in_pixels.x + (2 * m_InnerPadding.x) > m_Dimensions.x;
@@ -44,15 +41,12 @@ namespace FlameUI {
                 dimensions.y = top_element_position - bottom_element_position - 2 * m_InnerPadding.y;
             }
 
-            glm::ivec2 position = {
+            glm::vec2 position = {
                 m_Position.x - ((int)m_Dimensions.x / 2) + m_InnerPadding.x,
                 top_element_position - m_InnerPadding.y - (int)dimensions.y
             };
 
-            m_Buttons.push_back(Button::Create(&quad_id, title, FL_QUAD_POS_BOTTOM_LEFT_VERTEX, position, dimensions, color, textureFilePath));
-
-            if (quadId)
-                *quadId = quad_id;
+            m_Buttons.push_back(Button::Create(title, m_Position, FL_QUAD_POS_BOTTOM_LEFT_VERTEX, position, dimensions, color, textureFilePath));
 
             top_element_position = top_element_position - m_InnerPadding.y - dimensions.y;
         }
@@ -68,6 +62,101 @@ namespace FlameUI {
         if ((cursor_pos.x >= m_Bounds.Left - s_ResizeAreaPadding) && (cursor_pos.x <= m_Bounds.Right + s_ResizeAreaPadding) && (cursor_pos.y >= m_Bounds.Bottom - s_ResizeAreaPadding) && (cursor_pos.y <= m_Bounds.Top + s_ResizeAreaPadding))
             return true;
         return false;
+    }
+
+    void Panel::InvalidateMetrics()
+    {
+        m_Position = Renderer::GetQuadPositionInPixels(&m_PanelQuadId);
+        m_Dimensions = Renderer::GetQuadDimensionsInPixels(&m_PanelQuadId);
+    }
+
+    void Panel::LogResizeState()
+    {
+        std::string resize_state = "", detailed_resize_state = "";
+        switch (m_ResizeState)
+        {
+        case ResizeState::None:
+            resize_state = "NONE";
+            break;
+        case ResizeState::HoveredOnResizeArea:
+            resize_state = "HOVERED_ON_RESIZE_AREA";
+            break;
+        case ResizeState::Resizing:
+            resize_state = "RESIZING";
+            break;
+        }
+
+        switch (m_DetailedResizeState)
+        {
+        case DetailedResizeState::NotResizing:
+            detailed_resize_state = "NONE";
+            break;
+        case DetailedResizeState::ResizingLeftBorder:
+            detailed_resize_state = "RESIZING_LEFT_BORDER";
+            break;
+        case DetailedResizeState::ResizingRightBorder:
+            detailed_resize_state = "RESIZING_RIGHT_BORDER";
+            break;
+        case DetailedResizeState::ResizingBottomBorder:
+            detailed_resize_state = "RESIZING_BOTTOM_BORDER";
+            break;
+        case DetailedResizeState::ResizingTopBorder:
+            detailed_resize_state = "RESIZING_TOP_BORDER";
+            break;
+        case DetailedResizeState::ResizingBottomLeftCorner:
+            detailed_resize_state = "RESIZING_BOTTOM_LEFT_CORNER";
+            break;
+        case DetailedResizeState::ResizingBottomRightCorner:
+            detailed_resize_state = "RESIZING_BOTTOM_RIGHT_CORNER";
+            break;
+        case DetailedResizeState::ResizingTopLeftCorner:
+            detailed_resize_state = "RESIZING_TOP_LEFT_CORNER";
+            break;
+        case DetailedResizeState::ResizingTopRightCorner:
+            detailed_resize_state = "RESIZING_TOP_RIGHT_CORNER";
+            break;
+        }
+
+        FL_LOG("Panel '{0}': Resize State: {1}, Detailed Resize State: {2}", m_PanelName, resize_state, detailed_resize_state);
+    }
+
+    void Panel::LogDockState()
+    {
+        std::string dock_state = "", detailed_dock_state = "";
+
+        switch (m_DockState)
+        {
+        case DockState::None:
+            dock_state = "NONE";
+            break;
+        case DockState::HoveredOnDockingArea:
+            dock_state = "HOVERED_ON_DOCKING_AREA";
+            break;
+        case DockState::Docked:
+            dock_state = "DOCKED";
+            break;
+        }
+
+        switch (m_DetailedDockState)
+        {
+        case DetailedDockState::NotDocked:
+            detailed_dock_state = "NOT_DOCKED";
+            break;
+        case DetailedDockState::DockedLeft:
+            detailed_dock_state = "DOCKED_LEFT";
+            break;
+        case DetailedDockState::DockedRight:
+            detailed_dock_state = "DOCKED_RIGHT";
+            break;
+        case DetailedDockState::DockedBottom:
+            detailed_dock_state = "DOCKED_BOTTOM";
+            break;
+        case DetailedDockState::DockedTop:
+            detailed_dock_state = "DOCKED_TOP";
+            break;
+        }
+
+        FL_LOG("Panel {0}: DockState: {1}, Detailed Dock State: {2}", m_PanelName, dock_state, detailed_dock_state);
     }
 
     void Panel::ResizeLeft(const std::array<Vertex*, 4>& ptr_to_vertices, const float& cursor_pos_x)
@@ -126,36 +215,165 @@ namespace FlameUI {
         }
     }
 
+    void Panel::ShowDockingPreview()
+    {
+        static bool once = true;
+        uint32_t quadid = 0;
+        if (m_DockState == DockState::HoveredOnDockingArea)
+        {
+            if (once)
+            {
+                Renderer::AddQuad(&quadid, FL_QUAD_POS_BOTTOM_LEFT_VERTEX, { 0, 0 }, { m_Dimensions.x, m_Dimensions.y }, { 0.0f, 1.0f, 1.0f, 1.0f });
+                once = false;
+            }
+        }
+        else
+        {
+            Renderer::RemoveQuad(&quadid);
+            once = true;
+        }
+    }
+
+    void Panel::Undock()
+    {
+        m_IsCurrentlyDocked = false;
+        FL_LOG("Undocked panel");
+    }
+
+    void Panel::DockLeft()
+    {
+        if (!m_IsCurrentlyDocked)
+        {
+            glm::vec2 viewportSize = Renderer::GetViewportSize();
+            float half_width = (m_DockspaceBounds.Right - m_DockspaceBounds.Left) / 2.0f;
+
+            m_DockingPosition.x = m_DockspaceBounds.Left + m_Dimensions.x / 2.0f;
+            m_DockingPosition.y = m_DockspaceBounds.Bottom + (m_DockspaceBounds.Top - m_DockspaceBounds.Bottom) / 2.0f;
+
+            if (m_Dimensions.x > half_width)
+                m_Dimensions.x = half_width;
+            m_Dimensions.y = m_DockspaceBounds.Top - m_DockspaceBounds.Bottom;
+            m_IsCurrentlyDocked = true;
+        }
+        m_Position = m_DockingPosition;
+        Renderer::ChangeQuadVertices(&m_PanelQuadId, FL_QUAD_POS_CENTER, m_Position, m_Dimensions, m_Color);
+        SetZIndex(m_ZIndex);
+    }
+
+    void Panel::DockRight()
+    {
+        if (!m_IsCurrentlyDocked)
+        {
+            glm::vec2 viewportSize = Renderer::GetViewportSize();
+            float half_width = (m_DockspaceBounds.Right - m_DockspaceBounds.Left) / 2.0f;
+
+            m_DockingPosition.x = m_DockspaceBounds.Right - m_Dimensions.x / 2.0f;
+            m_DockingPosition.y = m_DockspaceBounds.Bottom + (m_DockspaceBounds.Top - m_DockspaceBounds.Bottom) / 2.0f;
+
+            if (m_Dimensions.x > half_width)
+                m_Dimensions.x = half_width;
+            m_Dimensions.y = m_DockspaceBounds.Top - m_DockspaceBounds.Bottom;
+            m_IsCurrentlyDocked = true;
+        }
+        m_Position = m_DockingPosition;
+        Renderer::ChangeQuadVertices(&m_PanelQuadId, FL_QUAD_POS_CENTER, m_Position, m_Dimensions, m_Color);
+        SetZIndex(m_ZIndex);
+    }
+
+    void Panel::DockBottom()
+    {
+        if (!m_IsCurrentlyDocked)
+        {
+            glm::vec2 viewportSize = Renderer::GetViewportSize();
+            float half_height = (m_DockspaceBounds.Top - m_DockspaceBounds.Bottom) / 2.0f;
+            if (m_Dimensions.y > half_height)
+                m_Dimensions.y = half_height;
+
+            m_Dimensions.x = m_DockspaceBounds.Right - m_DockspaceBounds.Left;
+            m_DockingPosition.y = m_DockspaceBounds.Bottom + m_Dimensions.y / 2.0f;
+            m_DockingPosition.x = m_DockspaceBounds.Left + (m_DockspaceBounds.Right - m_DockspaceBounds.Left) / 2.0f;
+            m_IsCurrentlyDocked = true;
+        }
+        m_Position = m_DockingPosition;
+        Renderer::ChangeQuadVertices(&m_PanelQuadId, FL_QUAD_POS_CENTER, m_Position, m_Dimensions, m_Color);
+        SetZIndex(m_ZIndex);
+    }
+
+    void Panel::DockTop()
+    {
+        if (!m_IsCurrentlyDocked)
+        {
+            glm::vec2 viewportSize = Renderer::GetViewportSize();
+            float half_height = (m_DockspaceBounds.Top - m_DockspaceBounds.Bottom) / 2.0f;
+
+            if (m_Dimensions.y > half_height)
+                m_Dimensions.y = half_height;
+
+            m_Dimensions.x = m_DockspaceBounds.Right - m_DockspaceBounds.Left;
+            m_DockingPosition.y = m_DockspaceBounds.Top - m_Dimensions.y / 2.0f;
+            m_DockingPosition.x = m_DockspaceBounds.Left + (m_DockspaceBounds.Right - m_DockspaceBounds.Left) / 2.0f;
+            m_IsCurrentlyDocked = true;
+        }
+        m_Position = m_DockingPosition;
+        Renderer::ChangeQuadVertices(&m_PanelQuadId, FL_QUAD_POS_CENTER, m_Position, m_Dimensions, m_Color);
+        SetZIndex(m_ZIndex);
+    }
+
     void Panel::SetZIndex(float z)
     {
         m_ZIndex = z;
         Renderer::SetQuadZIndex(&m_PanelQuadId, m_ZIndex);
     }
 
-    void Panel::SetFocus(bool value)
+    void Panel::SetFocus(bool value) { m_IsFocused = value; }
+
+    Bounds Panel::GetDockspaceContribution() const
     {
-        m_IsFocused = value;
+        if (m_DockState == DockState::Docked)
+        {
+            switch (m_DetailedDockState)
+            {
+            case DetailedDockState::DockedLeft:
+                return { m_Dimensions.x, 0.0f, 0.0f, 0.0f };
+                break;
+            case DetailedDockState::DockedRight:
+                return { 0.0f, m_Dimensions.x, 0.0f, 0.0f };
+                break;
+            case DetailedDockState::DockedBottom:
+                return { 0.0f, 0.0f, m_Dimensions.y, 0.0f };
+                break;
+            case DetailedDockState::DockedTop:
+                return { 0.0f, 0.0f, 0.0f, m_Dimensions.y };
+                break;
+            default:
+                break;
+            }
+        }
+        return { 0.0f, 0.0f, 0.0f, 0.0f };
     }
 
     void Panel::OnUpdate()
     {
-        std::array<Vertex*, 4> ptr = Renderer::GetPtrToQuadVertices(&m_PanelQuadId);
-        float size_x = ptr[3]->position.x - ptr[0]->position.x;
-        float size_y = ptr[1]->position.y - ptr[0]->position.y;
-        float position_x = ptr[3]->position.x - (ptr[3]->position.x - ptr[0]->position.x) / 2.0f;
-        float position_y = ptr[1]->position.y - (ptr[1]->position.y - ptr[0]->position.y) / 2.0f;
-        m_Position = Renderer::ConvertOpenGLValuesToPixels({ position_x, position_y });
-        m_Dimensions = Renderer::ConvertOpenGLValuesToPixels({ size_x, size_y });
+        InvalidateMetrics();
+
         m_Bounds.Left = m_Position.x - (m_Dimensions.x / 2);
         m_Bounds.Right = m_Position.x + (m_Dimensions.x / 2);
         m_Bounds.Bottom = m_Position.y - (m_Dimensions.y / 2);
         m_Bounds.Top = m_Position.y + (m_Dimensions.y / 2);
+
+        for (auto& button : m_Buttons)
+            button->OnUpdate(m_Position, m_ZIndex);
     }
 
     void Panel::OnEvent()
     {
         GLFWwindow* window = Renderer::GetUserGLFWwindow();
         glm::vec2& cursor_pos = Renderer::GetCursorPosition();
+        glm::vec2 viewportSize = Renderer::GetViewportSize();
+        float left = -viewportSize.x / 2.0f;
+        float right = viewportSize.x / 2.0f;
+        float bottom = -viewportSize.y / 2.0f;
+        float top = viewportSize.y / 2.0f;
 
         /// All Location Booleans
         bool is_in_panel_area_x = (cursor_pos.x >= m_Bounds.Left - s_ResizeAreaPadding) && (cursor_pos.x <= m_Bounds.Right + s_ResizeAreaPadding);
@@ -266,63 +484,7 @@ namespace FlameUI {
             }
 
             if (false)
-            {
-                ///
-                /// Logging Resize State ----------------------------------------------------------------------------------------
-                ///
-
-                std::string resize_state = "", detailed_resize_state = "";
-                switch (m_ResizeState)
-                {
-                case ResizeState::None:
-                    resize_state = "NONE";
-                    break;
-                case ResizeState::HoveredOnResizeArea:
-                    resize_state = "HOVERED_ON_RESIZE_AREA";
-                    break;
-                case ResizeState::Resizing:
-                    resize_state = "RESIZING";
-                    break;
-                }
-
-                switch (m_DetailedResizeState)
-                {
-                case DetailedResizeState::NotResizing:
-                    detailed_resize_state = "NONE";
-                    break;
-                case DetailedResizeState::ResizingLeftBorder:
-                    detailed_resize_state = "RESIZING_LEFT_BORDER";
-                    break;
-                case DetailedResizeState::ResizingRightBorder:
-                    detailed_resize_state = "RESIZING_RIGHT_BORDER";
-                    break;
-                case DetailedResizeState::ResizingBottomBorder:
-                    detailed_resize_state = "RESIZING_BOTTOM_BORDER";
-                    break;
-                case DetailedResizeState::ResizingTopBorder:
-                    detailed_resize_state = "RESIZING_TOP_BORDER";
-                    break;
-                case DetailedResizeState::ResizingBottomLeftCorner:
-                    detailed_resize_state = "RESIZING_BOTTOM_LEFT_CORNER";
-                    break;
-                case DetailedResizeState::ResizingBottomRightCorner:
-                    detailed_resize_state = "RESIZING_BOTTOM_RIGHT_CORNER";
-                    break;
-                case DetailedResizeState::ResizingTopLeftCorner:
-                    detailed_resize_state = "RESIZING_TOP_LEFT_CORNER";
-                    break;
-                case DetailedResizeState::ResizingTopRightCorner:
-                    detailed_resize_state = "RESIZING_TOP_RIGHT_CORNER";
-                    break;
-                }
-
-                FL_LOG("Panel '{0}': Resize State: {1}, Detailed Resize State: {2}", m_PanelName, resize_state, detailed_resize_state);
-
-                ///
-                /// --------------------------------------------------------------------------------------------------------------
-                ///
-
-            }
+                LogResizeState();
 
             if (m_ResizeState == ResizeState::Resizing)
             {
@@ -357,7 +519,10 @@ namespace FlameUI {
                     ResizeRight(ptr, cursor_pos.x);
                     ResizeTop(ptr, cursor_pos.y);
                     break;
+                default:
+                    break;
                 }
+                InvalidateMetrics();
             }
         }
 
@@ -365,14 +530,40 @@ namespace FlameUI {
         {
             if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE)
             {
+                if (m_IsGrabbed)
+                {
+                    if (cursor_pos.x <= m_DockspaceBounds.Left + 100.0f)
+                    {
+                        m_DockState = DockState::Docked;
+                        m_DetailedDockState = DetailedDockState::DockedLeft;
+                    }
+                    else if (cursor_pos.x >= m_DockspaceBounds.Right - 100.0f)
+                    {
+                        m_DockState = DockState::Docked;
+                        m_DetailedDockState = DetailedDockState::DockedRight;
+                    }
+                    else if (cursor_pos.y <= m_DockspaceBounds.Bottom + 100.0f)
+                    {
+                        m_DockState = DockState::Docked;
+                        m_DetailedDockState = DetailedDockState::DockedBottom;
+                    }
+                    else if (cursor_pos.y >= m_DockspaceBounds.Top - 100.0f)
+                    {
+                        m_DockState = DockState::Docked;
+                        m_DetailedDockState = DetailedDockState::DockedTop;
+                    }
+                }
+                else if (m_DockState == DockState::HoveredOnDockingArea)
+                {
+                    m_DockState = DockState::None;
+                }
+
                 m_IsFirstTime = true;
                 m_IsGrabbed = false;
             }
+
             if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
             {
-                //
-                // if (m_IsCursorInPanelArea)
-                //
                 if (m_IsCursorInPanelArea && (m_ResizeState != ResizeState::HoveredOnResizeArea))
                 {
                     m_IsGrabbed = true;
@@ -385,15 +576,59 @@ namespace FlameUI {
                 }
                 if (m_IsGrabbed)
                 {
+                    if (m_DockState == DockState::Docked)
+                    {
+                        m_DockState = DockState::None;
+                        m_DetailedDockState = DetailedDockState::NotDocked;
+                        Undock();
+                    }
+
+                    /// Broken if else statement
+                    if (cursor_pos.x <= left + 100.0f)
+                        m_DockState = DockState::HoveredOnDockingArea;
+                    else
+                        m_DockState = DockState::None;
+
                     m_Position = { cursor_pos.x - m_OffsetX , cursor_pos.y - m_OffsetY };
                     Renderer::SetQuadPosition(&m_PanelQuadId, { (int)m_Position.x, (int)m_Position.y });
                 }
             }
         }
+
+        /// Currently broken as the function it uses to remove quads is broken
+        if (false)
+            ShowDockingPreview();
+
+        if (true)
+        {
+            if (m_DockState == DockState::Docked)
+            {
+                switch (m_DetailedDockState)
+                {
+                case DetailedDockState::DockedLeft:
+                    DockLeft();
+                    break;
+                case DetailedDockState::DockedRight:
+                    DockRight();
+                    break;
+                case DetailedDockState::DockedBottom:
+                    DockBottom();
+                    break;
+                case DetailedDockState::DockedTop:
+                    DockTop();
+                    break;
+                case DetailedDockState::NotDocked:
+                    break;
+                }
+            }
+        }
+
+        if (false)
+            LogDockState();
     }
 
-    std::shared_ptr<Panel> Panel::Create(const std::string& panelName, const glm::ivec2& position_in_pixels,
-        const glm::ivec2& dimensions_in_pixels, const glm::vec4& color)
+    std::shared_ptr<Panel> Panel::Create(const std::string& panelName, const glm::vec2& position_in_pixels,
+        const glm::vec2& dimensions_in_pixels, const glm::vec4& color)
     {
         return std::make_shared<Panel>(panelName, position_in_pixels, dimensions_in_pixels, color);
     }

@@ -4,6 +4,7 @@
 #include <sstream>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include "Timer.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image/stb_image.h>
@@ -13,7 +14,7 @@
 
 namespace FlameUI {
     std::unordered_map<uint32_t, uint32_t[2]>     Renderer::s_QuadDictionary;
-    std::unordered_map<std::string, GLint>        Renderer::m_uniformloc_cache;
+    std::unordered_map<std::string, GLint>        Renderer::m_UniformLocationCache;
     std::unordered_map<char, Renderer::Character> Renderer::s_Characters;
     std::vector<std::shared_ptr<Batch>>           Renderer::s_Batches;
     uint32_t                                      Renderer::s_UniformBufferId;
@@ -23,7 +24,7 @@ namespace FlameUI {
     /// FL_PROJECT_DIR is just a macro defined by cmake, which is the absolute file path of the source dir of the FlameUI project
     std::string                                   Renderer::s_DefaultFontFilePath = FL_PROJECT_DIR + std::string("FlameUI/resources/fonts/OpenSans-Regular.ttf");
     Renderer::UniformBufferData                   Renderer::s_UniformBufferData;
-    Renderer::FontProps                           Renderer::s_FontProps = { 1.0f, 0.5f, 8.0f };
+    Renderer::FontProps                           Renderer::s_FontProps = { .Scale = 1.0f, .Strength = 0.5f, .PixelRange = 8.0f };
     glm::vec2                                     Renderer::s_ViewportSize = { 1280.0f, 720.0f };
     glm::vec2                                     Renderer::s_CursorPosition = { 0.0f, 0.0f };
     GLFWwindow* Renderer::s_UserWindow;
@@ -121,8 +122,8 @@ namespace FlameUI {
     {
         int width, height;
         glfwGetFramebufferSize(s_UserWindow, &width, &height);
-        s_ViewportSize = { (float)width, (float)height };
-        s_AspectRatio = (s_ViewportSize.x / s_ViewportSize.y);
+        s_ViewportSize = { width, height };
+        s_AspectRatio = s_ViewportSize.x / s_ViewportSize.y;
         s_UniformBufferData.ProjectionMatrix = glm::ortho(-s_AspectRatio, s_AspectRatio, -1.0f, 1.0f, -1.0f, 1.0f);
 
         glViewport(0, 0, s_ViewportSize.x, s_ViewportSize.y);
@@ -139,9 +140,18 @@ namespace FlameUI {
     glm::vec2   Renderer::GetViewportSize() { return s_ViewportSize; }
     GLFWwindow* Renderer::GetUserGLFWwindow() { return s_UserWindow; }
     glm::vec2& Renderer::GetCursorPosition() { return s_CursorPosition; }
+    glm::vec2 Renderer::GetQuadPositionInPixels(uint32_t* quadId)
+    {
+        return ConvertOpenGLValuesToPixels(s_Batches[s_QuadDictionary[*quadId][0]]->GetQuadPosition(s_QuadDictionary[*quadId][1]));
+    }
+    glm::vec2  Renderer::GetQuadDimensionsInPixels(uint32_t* quadId)
+    {
+        return ConvertOpenGLValuesToPixels(s_Batches[s_QuadDictionary[*quadId][0]]->GetQuadDimensions(s_QuadDictionary[*quadId][1]));
+    }
 
     void Renderer::OnUpdate()
     {
+        glClear(GL_DEPTH_BUFFER_BIT);
         double x, y;
         glfwGetCursorPos(s_UserWindow, &x, &y);
         s_CursorPosition.x = x - s_ViewportSize.x / 2.0f;
@@ -151,7 +161,7 @@ namespace FlameUI {
 
     void Renderer::Init(GLFWwindow* window)
     {
-        FL_LOGGER_INIT("FLAMEUI");
+        FL_LOGGER_INIT();
         FL_INFO("Initialized Logger!");
 
         s_UserWindow = window;
@@ -170,11 +180,11 @@ namespace FlameUI {
         FL_INFO("Loaded Font from path \"{0}\"", s_UserFontFilePath);
 
         /* Create Uniform Buffer */
-        GL_CHECK_ERROR(glGenBuffers(1, &s_UniformBufferId));
-        GL_CHECK_ERROR(glBindBuffer(GL_UNIFORM_BUFFER, s_UniformBufferId));
-        GL_CHECK_ERROR(glBufferData(GL_UNIFORM_BUFFER, sizeof(UniformBufferData), nullptr, GL_DYNAMIC_DRAW));
-        GL_CHECK_ERROR(glBindBufferRange(GL_UNIFORM_BUFFER, 0, s_UniformBufferId, 0, sizeof(UniformBufferData)));
-        GL_CHECK_ERROR(glBindBuffer(GL_UNIFORM_BUFFER, 0));
+        glGenBuffers(1, &s_UniformBufferId);
+        glBindBuffer(GL_UNIFORM_BUFFER, s_UniformBufferId);
+        glBufferData(GL_UNIFORM_BUFFER, sizeof(UniformBufferData), nullptr, GL_DYNAMIC_DRAW);
+        glBindBufferRange(GL_UNIFORM_BUFFER, 0, s_UniformBufferId, 0, sizeof(UniformBufferData));
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
         FL_INFO("Initialized Renderer!");
     }
@@ -182,13 +192,13 @@ namespace FlameUI {
     void Renderer::GetQuadVertices(
         std::array<Vertex, 4>* vertices,
         const QuadPosType& positionType,
-        const glm::ivec2& position_in_pixels,
-        const glm::ivec2& dimensions_in_pixels,
+        const glm::vec2& position_in_pixels,
+        const glm::vec2& dimensions_in_pixels,
         const glm::vec4& color
     )
     {
         glm::vec2 position = ConvertPixelsToOpenGLValues(position_in_pixels);
-        glm::vec2 dimensions = ConvertPixelsToOpenGLValues({ (int)dimensions_in_pixels.x, (int)dimensions_in_pixels.y });
+        glm::vec2 dimensions = ConvertPixelsToOpenGLValues({ dimensions_in_pixels.x, dimensions_in_pixels.y });
 
         Vertex Vertices[4];
 
@@ -222,45 +232,42 @@ namespace FlameUI {
         (*vertices)[3].texture_uv = { 1.0f, 0.0f };
     }
 
-    void Renderer::AddQuad(uint32_t* quadId, const QuadPosType& positionType, const glm::ivec2& position_in_pixels,
-        const glm::ivec2& dimensions_in_pixels, const glm::vec4& color)
+    void Renderer::AddQuad(uint32_t* quadId, const QuadPosType& positionType, const glm::vec2& position_in_pixels,
+        const glm::vec2& dimensions_in_pixels, const glm::vec4& color)
     {
         std::array<Vertex, 4> vertices;
         GetQuadVertices(&vertices, positionType, position_in_pixels, dimensions_in_pixels, color);
 
-        static uint32_t quad_id = 0;
-        if ((!quad_id) || (s_Batches[s_QuadDictionary[quad_id][0]]->IsFull()))
+        static bool first_time = true;
+        static uint32_t batch_index = 0;
+        if (first_time)
         {
             s_Batches.push_back(std::make_shared<BasicQuadBatch>());
             s_Batches.back()->Init();
-
-            quad_id = GenQuadId();
-            if (quadId)
-                *quadId = quad_id;
-            s_QuadDictionary[quad_id][0] = s_Batches.size() - 1;
-            s_QuadDictionary[quad_id][1] = 0;
-
-            s_Batches.back()->AddQuad(vertices, nullptr);
+            batch_index = s_Batches.size() - 1;
+            first_time = false;
         }
-        else if ((quad_id) && (!s_Batches[s_QuadDictionary[quad_id][0]]->IsFull()))
-        {
-            uint32_t previous_quad_id = quad_id;
 
-            quad_id = GenQuadId();
-            if (quadId)
-                *quadId = quad_id;
+        uint32_t quad_id = GenQuadId();
+        if (quadId)
+            *quadId = quad_id;
 
-            s_QuadDictionary[quad_id][0] = s_QuadDictionary[previous_quad_id][0];
-            s_Batches[s_QuadDictionary[quad_id][0]]->AddQuad(vertices, &s_QuadDictionary[quad_id][1]);
-            FL_LOG("location is {0}", s_QuadDictionary[quad_id][1]);
-        }
+        s_QuadDictionary[quad_id][0] = batch_index;
+        s_Batches[batch_index]->AddQuad(vertices, &s_QuadDictionary[quad_id][1]);
     }
 
-    void Renderer::AddQuad(uint32_t* quadId, const QuadPosType& positionType, const glm::ivec2& position_in_pixels,
-        const glm::ivec2& dimensions_in_pixels, const glm::vec4& color, const std::string& textureFilePath)
+    void Renderer::AddQuad(uint32_t* quadId, const QuadPosType& positionType, const glm::vec2& position_in_pixels,
+        const glm::vec2& dimensions_in_pixels, const glm::vec4& color, const std::string& textureFilePath)
     {
         std::array<Vertex, 4> vertices;
         GetQuadVertices(&vertices, positionType, position_in_pixels, dimensions_in_pixels, color);
+
+        static uint16_t slot = 0;
+        for (uint8_t i = 0; i < 4; i++)
+            vertices[i].texture_index = slot;
+        slot++;
+        if (slot == s_Max_Texture_Slots)
+            slot = 0;
 
         static uint32_t quad_id = 0;
         if ((!quad_id) || (s_Batches[s_QuadDictionary[quad_id][0]]->IsFull()))
@@ -292,8 +299,47 @@ namespace FlameUI {
         }
     }
 
+    bool Renderer::DoesQuadExist(uint32_t* quadId)
+    {
+        if (s_QuadDictionary.find(*quadId) == s_QuadDictionary.end())
+            return false;
+        return s_Batches[s_QuadDictionary[*quadId][0]]->DoQuadVerticesExist(s_QuadDictionary[*quadId][1]);
+    }
+
+    // Broken Function
+    // TODO: Fix this function
     void Renderer::RemoveQuad(uint32_t* quadId)
     {
+        if (!DoesQuadExist(quadId))
+        {
+            FL_WARN("Attempted to remove quad that doesn't exist!");
+            return;
+        }
+
+        flame::optional<uint32_t> prev_loc;
+        switch (s_Batches[s_QuadDictionary[*quadId][0]]->GetBatchType())
+        {
+        case BatchType::BasicQuad:
+            s_Batches[s_QuadDictionary[*quadId][0]]->RemoveQuadVertices(s_QuadDictionary[*quadId][1], prev_loc);
+
+            if (prev_loc.has_value())
+            {
+                for (std::unordered_map<uint32_t, uint32_t[2]>::iterator it = s_QuadDictionary.begin(); it != s_QuadDictionary.end(); it++)
+                {
+                    if ((*it).second[1] == prev_loc)
+                    {
+                        (*it).second[1] = s_QuadDictionary[*quadId][1];
+                        break;
+                    }
+                }
+            }
+            s_QuadDictionary.erase(*quadId);
+            break;
+        case BatchType::TexturedQuad:
+            break;
+        case BatchType::Text:
+            break;
+        }
     }
 
     void Renderer::AddQuadToTextBatch(
@@ -331,12 +377,7 @@ namespace FlameUI {
         }
     }
 
-    void Renderer::AddText(
-        const std::string& text,
-        const glm::ivec2& position_in_pixels,
-        float scale,
-        const glm::vec4& color
-    )
+    void Renderer::AddText(const std::string& text, const glm::vec2& position_in_pixels, float scale, const glm::vec4& color)
     {
         static uint16_t slot = 0;
         auto position = position_in_pixels;
@@ -385,6 +426,7 @@ namespace FlameUI {
 
     void Renderer::OnDraw()
     {
+        FL_TIMER_SCOPE("Renderer_OnDraw()");
         /* Set Projection Matrix in GPU memory, for all shader programs to access it */
         GL_CHECK_ERROR(glBindBuffer(GL_UNIFORM_BUFFER, s_UniformBufferId));
         GL_CHECK_ERROR(glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(s_UniformBufferData.ProjectionMatrix)));
@@ -469,7 +511,7 @@ namespace FlameUI {
         return textDimensions;
     }
 
-    glm::vec2 Renderer::ConvertPixelsToOpenGLValues(const glm::ivec2& value_in_pixels)
+    glm::vec2 Renderer::ConvertPixelsToOpenGLValues(const glm::vec2& value_in_pixels)
     {
         glm::vec2 position_in_opengl_coords;
         position_in_opengl_coords.x = value_in_pixels.x * (float)((2.0f * s_AspectRatio) / s_ViewportSize.x);
@@ -482,7 +524,7 @@ namespace FlameUI {
         s_Batches[s_QuadDictionary[*quadId][0]]->SetQuadZIndex(s_QuadDictionary[*quadId][1], z);
     }
 
-    void Renderer::SetQuadPosition(uint32_t* quadId, const glm::ivec2& position_in_pixels)
+    void Renderer::SetQuadPosition(uint32_t* quadId, const glm::vec2& position_in_pixels)
     {
         auto position = ConvertPixelsToOpenGLValues(position_in_pixels);
         auto ptr = GetPtrToQuadVertices(quadId);
@@ -499,7 +541,7 @@ namespace FlameUI {
         ptr[3]->position.y = position.y - (size_y / 2.0f);
     }
 
-    void Renderer::SetQuadDimensions(uint32_t* quadId, const glm::ivec2& dimensions_in_pixels)
+    void Renderer::SetQuadDimensions(uint32_t* quadId, const glm::vec2& dimensions_in_pixels)
     {
         auto dimensions = ConvertPixelsToOpenGLValues(dimensions_in_pixels);
         auto ptr = GetPtrToQuadVertices(quadId);
@@ -529,8 +571,8 @@ namespace FlameUI {
         s_Batches[s_QuadDictionary[*quadId][0]]->SetQuadVertices(s_QuadDictionary[*quadId][1], vertices);
     }
 
-    void Renderer::ChangeQuadVertices(uint32_t* quadId, const QuadPosType& positionType, const glm::ivec2& position_in_pixels,
-        const glm::ivec2& dimensions_in_pixels, const glm::vec4& color)
+    void Renderer::ChangeQuadVertices(uint32_t* quadId, const QuadPosType& positionType, const glm::vec2& position_in_pixels,
+        const glm::vec2& dimensions_in_pixels, const glm::vec4& color)
     {
         std::array<Vertex, 4> vertices;
         GetQuadVertices(&vertices, positionType, position_in_pixels, dimensions_in_pixels, color);
@@ -542,9 +584,9 @@ namespace FlameUI {
         return s_Batches[s_QuadDictionary[*quadId][0]]->GetPtrToQuadVertices(s_QuadDictionary[*quadId][1]);
     }
 
-    glm::ivec2 Renderer::ConvertOpenGLValuesToPixels(const glm::vec2& opengl_coords)
+    glm::vec2 Renderer::ConvertOpenGLValuesToPixels(const glm::vec2& opengl_coords)
     {
-        glm::ivec2 value_in_pixels;
+        glm::vec2 value_in_pixels;
         int width, height;
         glfwGetFramebufferSize(s_UserWindow, &width, &height);
         value_in_pixels.x = (int)((opengl_coords.x / (2.0f * s_AspectRatio)) * width);
@@ -600,6 +642,22 @@ namespace FlameUI {
         s_Batches[s_QuadDictionary[*quadId][0]]->AddTextureId(textureId);
     }
 
+    void Renderer::PrintQuadDictionary()
+    {
+        if (s_QuadDictionary.empty())
+        {
+            FL_WARN("Quad Dictionary is empty!");
+            return;
+        }
+
+        uint32_t i = 1;
+        for (auto& it : s_QuadDictionary)
+        {
+            FL_LOG("Quad {0}: QuadId: {1}, Batch Index: {2}, Vertex Index: {3}", i, it.first, it.second[0], it.second[1]);
+            i++;
+        }
+    }
+
     std::tuple<std::string, std::string> Renderer::ReadShaderSource(const std::string& filePath)
     {
         std::ifstream stream(filePath);
@@ -631,13 +689,13 @@ namespace FlameUI {
 
     GLint Renderer::GetUniformLocation(const std::string& name, uint32_t shaderId)
     {
-        if (m_uniformloc_cache.find(name) != m_uniformloc_cache.end())
-            return m_uniformloc_cache[name];
+        if (m_UniformLocationCache.find(name) != m_UniformLocationCache.end())
+            return m_UniformLocationCache[name];
 
         GLint location = glGetUniformLocation(shaderId, name.c_str());
         if (location == -1)
             FL_LOG("Uniform \"{0}\" not found!", name);
-        m_uniformloc_cache[name] = location;
+        m_UniformLocationCache[name] = location;
         return location;
     }
 

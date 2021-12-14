@@ -27,7 +27,7 @@ namespace FlameBerry {
             std::cout << "Window is null!" << std::endl;
 
         glfwMakeContextCurrent(m_Window);
-        m_Vsync ? glfwSwapInterval(1) : glfwSwapInterval(0);
+        glfwSwapInterval(1);
 
         if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
         {

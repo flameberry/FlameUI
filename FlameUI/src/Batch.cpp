@@ -34,6 +34,33 @@ namespace FlameUI {
             m_Vertices.push_back(vertex);
     }
 
+    bool BasicQuadBatch::DoQuadVerticesExist(uint32_t location)
+    {
+        return (m_Vertices.size() > location);
+    }
+
+    void BasicQuadBatch::RemoveQuadVertices(uint32_t location, flame::optional<uint32_t>& prev_loc_of_new_vertices)
+    {
+        FL_DO_ON_ASSERT(m_Vertices.size(), FL_WARN("Attempted to remove quad vertices, when there are no vertices!"));
+        size_t size = m_Vertices.size();
+
+        if (location == size - 4)
+        {
+            for (uint8_t i = 0; i < 4; i++)
+                m_Vertices.pop_back();
+        }
+        else
+        {
+            prev_loc_of_new_vertices = size - 4;
+            for (uint8_t i = 0; i < 4; i++)
+                m_Vertices[location + i] = m_Vertices[size - 4 + i];
+            for (uint8_t i = 0; i < 4; i++)
+                m_Vertices.pop_back();
+        }
+    }
+
+    BatchType BasicQuadBatch::GetBatchType() const { return BatchType::BasicQuad; }
+
     void BasicQuadBatch::AddTextureId(uint32_t textureId)
     {
     }
@@ -44,6 +71,25 @@ namespace FlameUI {
         for (uint8_t i = 0; i < 4; i++)
             ptr[i] = &m_Vertices[location + i];
         return ptr;
+    }
+
+    glm::vec2 BasicQuadBatch::GetQuadPosition(uint32_t location)
+    {
+        float position_x, position_y;
+        float dimensions_x, dimensions_y;
+        dimensions_x = m_Vertices[location + 3].position.x - m_Vertices[location].position.x;
+        dimensions_y = m_Vertices[location + 1].position.y - m_Vertices[location].position.y;
+
+        position_x = m_Vertices[location].position.x + dimensions_x / 2.0f;
+        position_y = m_Vertices[location].position.y + dimensions_y / 2.0f;
+        return { position_x, position_y };
+    }
+
+    glm::vec2 BasicQuadBatch::GetQuadDimensions(uint32_t location)
+    {
+        float dimensions_x = m_Vertices[location + 3].position.x - m_Vertices[location].position.x;
+        float dimensions_y = m_Vertices[location + 1].position.y - m_Vertices[location].position.y;
+        return { dimensions_x, dimensions_y };
     }
 
     void BasicQuadBatch::SetQuadVertices(uint32_t location, const std::array<Vertex, 4>& vertices)
@@ -221,10 +267,22 @@ namespace FlameUI {
 
     void TexturedQuadBatch::AddQuad(const std::array<Vertex, 4>& vertices, uint32_t* location)
     {
-        *location = m_Vertices.size();
+        if (location)
+            *location = m_Vertices.size();
         for (auto& vertex : vertices)
             m_Vertices.push_back(vertex);
     }
+
+    bool TexturedQuadBatch::DoQuadVerticesExist(uint32_t location)
+    {
+        return (m_Vertices.size() > location + 3);
+    }
+
+    void TexturedQuadBatch::RemoveQuadVertices(uint32_t location, flame::optional<uint32_t>& prev_loc_of_new_vertices)
+    {
+    }
+
+    BatchType TexturedQuadBatch::GetBatchType() const { return BatchType::TexturedQuad; }
 
     void TexturedQuadBatch::AddTextureId(uint32_t textureId)
     {
@@ -237,6 +295,25 @@ namespace FlameUI {
         for (uint8_t i = 0; i < 4; i++)
             ptr[i] = &m_Vertices[location + i];
         return ptr;
+    }
+
+    glm::vec2 TexturedQuadBatch::GetQuadPosition(uint32_t location)
+    {
+        float position_x, position_y;
+        float dimensions_x, dimensions_y;
+        dimensions_x = m_Vertices[location + 3].position.x - m_Vertices[location].position.x;
+        dimensions_y = m_Vertices[location + 1].position.y - m_Vertices[location].position.y;
+
+        position_x = m_Vertices[location].position.x + dimensions_x / 2.0f;
+        position_y = m_Vertices[location].position.y + dimensions_y / 2.0f;
+        return { position_x, position_y };
+    }
+
+    glm::vec2 TexturedQuadBatch::GetQuadDimensions(uint32_t location)
+    {
+        float dimensions_x = m_Vertices[location + 3].position.x - m_Vertices[location].position.x;
+        float dimensions_y = m_Vertices[location + 1].position.y - m_Vertices[location].position.y;
+        return { dimensions_x, dimensions_y };
     }
 
     void TexturedQuadBatch::SetQuadVertices(uint32_t location, const std::array<Vertex, 4>& vertices)
@@ -438,10 +515,22 @@ namespace FlameUI {
 
     void TextBatch::AddQuad(const std::array<Vertex, 4>& vertices, uint32_t* location)
     {
-        *location = m_Vertices.size();
+        if (location)
+            *location = m_Vertices.size();
         for (auto& vertex : vertices)
             m_Vertices.push_back(vertex);
     }
+
+    bool TextBatch::DoQuadVerticesExist(uint32_t location)
+    {
+        return (m_Vertices.size() > location + 3);
+    }
+
+    void TextBatch::RemoveQuadVertices(uint32_t location, flame::optional<uint32_t>& prev_loc_of_new_vertices)
+    {
+    }
+
+    BatchType TextBatch::GetBatchType() const { return BatchType::Text; }
 
     void TextBatch::AddTextureId(uint32_t textureId)
     {
@@ -454,6 +543,25 @@ namespace FlameUI {
         for (uint8_t i = 0; i < 4; i++)
             ptr[i] = &m_Vertices[location + i];
         return ptr;
+    }
+
+    glm::vec2 TextBatch::GetQuadPosition(uint32_t location)
+    {
+        float position_x, position_y;
+        float dimensions_x, dimensions_y;
+        dimensions_x = m_Vertices[location + 3].position.x - m_Vertices[location].position.x;
+        dimensions_y = m_Vertices[location + 1].position.y - m_Vertices[location].position.y;
+
+        position_x = m_Vertices[location].position.x + dimensions_x / 2.0f;
+        position_y = m_Vertices[location].position.y + dimensions_y / 2.0f;
+        return { position_x, position_y };
+    }
+
+    glm::vec2 TextBatch::GetQuadDimensions(uint32_t location)
+    {
+        float dimensions_x = m_Vertices[location + 3].position.x - m_Vertices[location].position.x;
+        float dimensions_y = m_Vertices[location + 1].position.y - m_Vertices[location].position.y;
+        return { dimensions_x, dimensions_y };
     }
 
     void TextBatch::SetQuadVertices(uint32_t location, const std::array<Vertex, 4>& vertices)

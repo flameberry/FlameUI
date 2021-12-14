@@ -6,16 +6,14 @@
 namespace FlameUI {
     struct QuadProps
     {
-        glm::ivec2 position_in_pixels;
-        glm::ivec2 dimensions_in_pixels;
-        glm::vec4 color;
+        glm::vec2  position_in_pixels;
+        glm::vec2  dimensions_in_pixels;
+        glm::vec4   color;
         std::string texture_filepath;
 
         QuadProps() = default;
         QuadProps(
-            const glm::ivec2& position_in_pixels,
-            const glm::ivec2& dimensions_in_pixels,
-            const glm::vec4& color,
+            const glm::vec2& position_in_pixels, const glm::vec2& dimensions_in_pixels, const glm::vec4& color,
             const std::string& texture_filepath
         )
             : position_in_pixels(position_in_pixels), dimensions_in_pixels(dimensions_in_pixels), color(color), texture_filepath(texture_filepath)
@@ -26,32 +24,33 @@ namespace FlameUI {
     class Button
     {
     public:
-        Button(
-            uint32_t* quadId,
-            const std::string& title,
-            const QuadPosType& quadPosType,
-            const glm::ivec2& position_in_pixels,
-            const glm::ivec2& dimensions_in_pixels,
-            const glm::vec4& color,
+        Button(const std::string& title, const QuadPosType& quadPosType, const glm::vec2& position_in_pixels,
+            const glm::vec2& dimensions_in_pixels, const glm::vec4& color, const std::string& textureFilePath);
+        Button(const std::string& title, const glm::vec2& panel_position, const QuadPosType& quadPosType,
+            const glm::vec2& button_pos_in_pixels, const glm::vec2& dimensions_in_pixels, const glm::vec4& color,
             const std::string& textureFilePath
         );
         ~Button() = default;
 
         static std::shared_ptr<Button> Create(
-            uint32_t* quadId,
-            const std::string& title,
-            const QuadPosType& quadPosType,
-            const glm::ivec2& position_in_pixels,
-            const glm::ivec2& dimensions_in_pixels,
-            const glm::vec4& color,
+            const std::string& title, const QuadPosType& quadPosType, const glm::vec2& position_in_pixels,
+            const glm::vec2& dimensions_in_pixels, const glm::vec4& color, const std::string& textureFilePath
+        );
+
+        static std::shared_ptr<Button> Create(
+            const std::string& title, const glm::vec2& panel_position, const QuadPosType& quadPosType,
+            const glm::vec2& button_pos_in_pixels, const glm::vec2& dimensions_in_pixels, const glm::vec4& color,
             const std::string& textureFilePath
         );
 
-        inline glm::ivec2 GetPosition() const { return m_Position; }
-        inline uint32_t GetQuadId() const { return m_QuadId; }
+        void       OnUpdate(const glm::vec2& panel_position_in_pixels, float z_index);
+        glm::vec2  GetPosition(const QuadPosType& quadPosType) const;
+        uint32_t   GetQuadId() const { return m_ButtonQuadId; }
     private:
-        glm::ivec2 m_Position;
+        glm::vec2  m_PositionCenter;
+        glm::vec2  m_PositionBLVertex;
+        glm::vec2  m_PositionCenterRelativeToPanel;
         glm::ivec4 m_InnerPadding;
-        uint32_t m_QuadId;
+        uint32_t   m_ButtonQuadId;
     };
 }

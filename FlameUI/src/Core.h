@@ -11,18 +11,36 @@
 #endif
 
 #ifdef FL_DEBUG
-#include "flamelogger/flamelogger.h"
+#include "Log.h"
 
-#define FL_LOGGER_INIT(project_name) flamelogger::Init(project_name)
+namespace flDebug {
+    template<typename T, typename... Args>
+    static void fl_print_msg_on_assert(const char* file, int line, const T& message, const Args&... args)
+    {
+        std::string msg = flamelogger::format_string(message, args...);
+        std::string assert_message = flamelogger::format_string("{0}[ASSERT] Assertion failed: {1} (file: {2}, line: {3})", flamelogger::get_current_time_string(), msg, file, line);
+        std::cout << FL_COLOR_RED << assert_message << FL_COLOR_DEFAULT << std::endl;
+    }
+
+    static void fl_print_msg_on_assert(const char* file, int line)
+    {
+        std::string assert_message = flamelogger::format_string("{0}[ASSERT] Assertion failed, file: {1}, line: {2}", flamelogger::get_current_time_string(), file, line);
+        std::cout << FL_COLOR_RED << assert_message << FL_COLOR_DEFAULT << std::endl;
+    }
+}
+
+#define FL_LOGGER_INIT() FlameUI::Log::Init()
 
 #define FL_DO_ON_ASSERT(x, ...) if(!(x)) __VA_ARGS__;
-#define FL_ASSERT(x, ...) FL_DO_ON_ASSERT(x, printf("Assertion Failed: "), flamelogger::log(__VA_ARGS__), flamelogger::log("File: {0}\nLine: {1}\nFunction: {2}()", __FILE__, __LINE__, __FUNCTION__), FL_DEBUGBREAK())
-#define FL_BASIC_ASSERT(x) FL_DO_ON_ASSERT(x, flamelogger::log("Assertion Failed: "), flamelogger::log("File: {0}\nLine: {1}\nFunction: {2}()", __FILE__, __LINE__, __FUNCTION__), FL_DEBUGBREAK())
+#define FL_ASSERT(x, ...) FL_DO_ON_ASSERT(x, flDebug::fl_print_msg_on_assert(__FILE__, __LINE__, __VA_ARGS__), FL_DEBUGBREAK())
+#define FL_BASIC_ASSERT(x) FL_DO_ON_ASSERT(x, flDebug::fl_print_msg_on_assert(__FILE__, __LINE__), FL_DEBUGBREAK())
 
-#define FL_LOG(...) flamelogger::log(__VA_ARGS__)
-#define FL_INFO(...) flamelogger::info(__VA_ARGS__)
-#define FL_WARN(...) flamelogger::warn(__VA_ARGS__)
-#define FL_ERROR(...) flamelogger::error(__VA_ARGS__)
+#define FL_DO_IN_ORDER(...) __VA_ARGS__;
+
+#define FL_LOG(...) FlameUI::Log::GetCoreLoggerInstance()->log(__VA_ARGS__)
+#define FL_INFO(...) FlameUI::Log::GetCoreLoggerInstance()->info(__VA_ARGS__)
+#define FL_WARN(...) FlameUI::Log::GetCoreLoggerInstance()->warn(__VA_ARGS__)
+#define FL_ERROR(...) FlameUI::Log::GetCoreLoggerInstance()->error(__VA_ARGS__)
 
 #elif defined(FL_RELEASE)
 
@@ -88,6 +106,15 @@ namespace FlameUI {
     struct Bounds
     {
         float Left, Right, Bottom, Top;
+        Bounds() = default;
+        Bounds(float val)
+            : Left(val), Right(val), Bottom(val), Top(val)
+        {
+        }
+        Bounds(float left, float right, float bottom, float top)
+            : Left(left), Right(right), Bottom(bottom), Top(top)
+        {
+        }
     };
 }
 

@@ -39,29 +39,35 @@ namespace FlameUI {
         static void        Init(GLFWwindow* window);
         static uint32_t    GenQuadId();
         static void        OnResize();
+        static bool        DoesQuadExist(uint32_t* quadId);
         static GLFWwindow* GetUserGLFWwindow();
         static glm::vec2   GetViewportSize();
         static glm::vec2   GetTextDimensions(const std::string& text, float scale);
-        static glm::vec2   ConvertPixelsToOpenGLValues(const glm::ivec2& value_in_pixels);
-        static glm::ivec2  ConvertOpenGLValuesToPixels(const glm::vec2& opengl_coords);
+        static glm::vec2   GetQuadPositionInPixels(uint32_t* quadId);
+        static glm::vec2   GetQuadDimensionsInPixels(uint32_t* quadId);
+        static GLint       GetUniformLocation(const std::string& name, uint32_t shaderId);
+        static glm::vec2   ConvertPixelsToOpenGLValues(const glm::vec2& value_in_pixels);
+        static glm::vec2   ConvertOpenGLValuesToPixels(const glm::vec2& opengl_coords);
         static float       ConvertXAxisPixelValueToOpenGLValue(int X);
         static float       ConvertYAxisPixelValueToOpenGLValue(int Y);
         inline static void SetUIFont(const std::string& filePath) { s_UserFontFilePath = filePath; }
         static void        SetQuadZIndex(uint32_t* quadId, float z);
-        static void        SetQuadPosition(uint32_t* quadId, const glm::ivec2& position_in_pixels);
-        static void        SetQuadDimensions(uint32_t* quadId, const glm::ivec2& dimensions_in_pixels);
+        static void        SetQuadPosition(uint32_t* quadId, const glm::vec2& position_in_pixels);
+        static void        SetQuadDimensions(uint32_t* quadId, const glm::vec2& dimensions_in_pixels);
         static void        SetQuadColor(uint32_t* quadId, const glm::vec4& color);
-        static void        AddText(const std::string& text, const glm::ivec2& position_in_pixels, float scale, const glm::vec4& color);
-        static void        AddQuad(uint32_t* quadId, const QuadPosType& positionType, const glm::ivec2& position_in_pixels, const glm::ivec2& dimensions_in_pixels, const glm::vec4& color);
-        static void        AddQuad(uint32_t* quadId, const QuadPosType& positionType, const glm::ivec2& position_in_pixels, const glm::ivec2& dimensions_in_pixels, const glm::vec4& color, const std::string& textureFilePath);
-        /// Experimental function, not stable to use yet
+        static void        AddText(const std::string& text, const glm::vec2& position_in_pixels, float scale, const glm::vec4& color);
+        static void        AddQuad(uint32_t* quadId, const QuadPosType& positionType, const glm::vec2& position_in_pixels, const glm::vec2& dimensions_in_pixels, const glm::vec4& color);
+        static void        AddQuad(uint32_t* quadId, const QuadPosType& positionType, const glm::vec2& position_in_pixels, const glm::vec2& dimensions_in_pixels, const glm::vec4& color, const std::string& textureFilePath);
+        // Currently doesn't work
         static void        RemoveQuad(uint32_t* quadId);
         static void        OnUpdate();
         static void        OnDraw();
         static void        ChangeQuadVertices(uint32_t* quadId, const std::array<Vertex, 4>& vertices);
-        static void        ChangeQuadVertices(uint32_t* quadId, const QuadPosType& positionType, const glm::ivec2& position_in_pixels = glm::ivec2(), const glm::ivec2& dimensions_in_pixels = glm::ivec2(), const glm::vec4& color = glm::vec4());
+        static void        ChangeQuadVertices(uint32_t* quadId, const QuadPosType& positionType, const glm::vec2& position_in_pixels = glm::vec2(), const glm::vec2& dimensions_in_pixels = glm::vec2(), const glm::vec4& color = glm::vec4());
         static void        CleanUp();
-        static GLint       GetUniformLocation(const std::string& name, uint32_t shaderId);
+
+        /// Functions For Debug Purposes
+        static void        PrintQuadDictionary();
 
         static glm::vec2& GetCursorPosition();
         static std::array<Vertex*, 4>               GetPtrToQuadVertices(uint32_t* quadId);
@@ -69,24 +75,21 @@ namespace FlameUI {
     private:
         /// Private Functions which will be used by the Renderer as Utilites
         static void        LoadFont(const std::string& filePath);
-        static void        GetQuadVertices(std::array<Vertex, 4>* vertices, const QuadPosType& positionType, const glm::ivec2& position_in_pixels, const glm::ivec2& dimensions_in_pixels, const glm::vec4& color);
+        static void        GetQuadVertices(std::array<Vertex, 4>* vertices, const QuadPosType& positionType, const glm::vec2& position_in_pixels, const glm::vec2& dimensions_in_pixels, const glm::vec4& color);
         static void        LoadTexture(uint32_t* quadId, const std::string& filePath);
         static void        AddQuadToTextBatch(uint32_t* quadId, const std::array<FlameUI::Vertex, 4>& vertices, uint32_t textureId);
     private:
         /// This value has to be set to whatever number of texture slots your GPU can support
         static const uint16_t s_Max_Texture_Slots = 16;
-        static const uint16_t s_Max_Quads_Per_Batch = 1 * s_Max_Texture_Slots;
-        static const uint16_t s_Max_Indices_Per_Batch = 6 * s_Max_Quads_Per_Batch;
-        static const uint16_t s_Max_Vertices_Per_Batch = 4 * s_Max_Quads_Per_Batch;
     private:
         /// Struct that contains all the matrices needed by the shader, which will be stored in a Uniform Buffer
         struct UniformBufferData { glm::mat4 ProjectionMatrix; };
         struct Character
         {
-            uint32_t   TextureId;  /// ID handle of the glyph texture
-            glm::ivec2 Size;       /// Size of glyph
-            glm::ivec2 Bearing;    /// Offset from baseline to left/top of glyph
-            double     Advance;    /// Offset to advance to next glyph
+            uint32_t   TextureId;  // ID handle of the glyph texture
+            glm::vec2  Size;       // Size of glyph
+            glm::vec2  Bearing;    // Offset from baseline to left/top of glyph
+            double     Advance;    // Offset to advance to next glyph
         };
         struct FontProps
         {
@@ -126,6 +129,6 @@ namespace FlameUI {
         /// The QuadId is generated using the `GenQuadId()` function, which is an unique ID assigned to every quad
         static std::unordered_map<uint32_t, uint32_t[2]> s_QuadDictionary;
         /// Stores the uniform location in a shader if the location needs to be reused
-        static std::unordered_map<std::string, GLint>    m_uniformloc_cache;
+        static std::unordered_map<std::string, GLint>    m_UniformLocationCache;
     };
 }

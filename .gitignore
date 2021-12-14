@@ -16,6 +16,7 @@ logs/
 
 # My Computer Specific Scripts
 *.sh
+shellscripts/
 
 # Pycharm folders
 .idea/
