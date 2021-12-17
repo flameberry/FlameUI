@@ -7,7 +7,7 @@ namespace FlameBerry {
     class Window
     {
     public:
-        Window(uint32_t width, uint32_t height, const char* title, bool vsync);
+        Window(uint32_t width = 1280, uint32_t height = 720, const char* title = "FlameUI", bool vsync = true);
         ~Window();
 
         static std::shared_ptr<Window> Create(uint32_t width = 1280, uint32_t height = 720, const char* title = "FlameBerry Engine", bool vsync = true);

@@ -137,9 +137,10 @@ namespace FlameUI {
         return id;
     }
 
-    glm::vec2   Renderer::GetViewportSize() { return s_ViewportSize; }
-    GLFWwindow* Renderer::GetUserGLFWwindow() { return s_UserWindow; }
+    glm::vec2  Renderer::GetViewportSize() { return s_ViewportSize; }
     glm::vec2& Renderer::GetCursorPosition() { return s_CursorPosition; }
+    GLFWwindow* Renderer::GetUserGLFWwindow() { return s_UserWindow; }
+
     glm::vec2 Renderer::GetQuadPositionInPixels(uint32_t* quadId)
     {
         return ConvertOpenGLValuesToPixels(s_Batches[s_QuadDictionary[*quadId][0]]->GetQuadPosition(s_QuadDictionary[*quadId][1]));
@@ -194,27 +195,28 @@ namespace FlameUI {
         const QuadPosType& positionType,
         const glm::vec2& position_in_pixels,
         const glm::vec2& dimensions_in_pixels,
-        const glm::vec4& color
+        const glm::vec4& color,
+        float z
     )
     {
         glm::vec2 position = ConvertPixelsToOpenGLValues(position_in_pixels);
-        glm::vec2 dimensions = ConvertPixelsToOpenGLValues({ dimensions_in_pixels.x, dimensions_in_pixels.y });
+        glm::vec2 dimensions = ConvertPixelsToOpenGLValues(dimensions_in_pixels);
 
         Vertex Vertices[4];
 
         switch (positionType)
         {
         case FL_QUAD_POS_BOTTOM_LEFT_VERTEX:
-            (*vertices)[0].position = { position.x,                position.y,                0.0f };
-            (*vertices)[1].position = { position.x,                position.y + dimensions.y, 0.0f };
-            (*vertices)[2].position = { position.x + dimensions.x, position.y + dimensions.y, 0.0f };
-            (*vertices)[3].position = { position.x + dimensions.x, position.y,                0.0f };
+            (*vertices)[0].position = { position.x,                position.y,                z };
+            (*vertices)[1].position = { position.x,                position.y + dimensions.y, z };
+            (*vertices)[2].position = { position.x + dimensions.x, position.y + dimensions.y, z };
+            (*vertices)[3].position = { position.x + dimensions.x, position.y,                z };
             break;
         case FL_QUAD_POS_CENTER:
-            (*vertices)[0].position = { -(dimensions.x / 2.0f) + position.x, -(dimensions.y / 2.0f) + position.y, 0.0f };
-            (*vertices)[1].position = { -(dimensions.x / 2.0f) + position.x, +(dimensions.y / 2.0f) + position.y, 0.0f };
-            (*vertices)[2].position = { +(dimensions.x / 2.0f) + position.x, +(dimensions.y / 2.0f) + position.y, 0.0f };
-            (*vertices)[3].position = { +(dimensions.x / 2.0f) + position.x, -(dimensions.y / 2.0f) + position.y, 0.0f };
+            (*vertices)[0].position = { -(dimensions.x / 2.0f) + position.x, -(dimensions.y / 2.0f) + position.y, z };
+            (*vertices)[1].position = { -(dimensions.x / 2.0f) + position.x, +(dimensions.y / 2.0f) + position.y, z };
+            (*vertices)[2].position = { +(dimensions.x / 2.0f) + position.x, +(dimensions.y / 2.0f) + position.y, z };
+            (*vertices)[3].position = { +(dimensions.x / 2.0f) + position.x, -(dimensions.y / 2.0f) + position.y, z };
             break;
         default:
             break;
@@ -232,11 +234,18 @@ namespace FlameUI {
         (*vertices)[3].texture_uv = { 1.0f, 0.0f };
     }
 
-    void Renderer::AddQuad(uint32_t* quadId, const QuadPosType& positionType, const glm::vec2& position_in_pixels,
-        const glm::vec2& dimensions_in_pixels, const glm::vec4& color)
+    void Renderer::AddQuad(const QuadCreateInfo& quadCreateInfo)
+    {
+        if (quadCreateInfo.textureFilePath == "")
+            AddBasicQuad(quadCreateInfo.quadId, quadCreateInfo.quadPositionType, quadCreateInfo.position, quadCreateInfo.dimensions, quadCreateInfo.color, quadCreateInfo.zIndex);
+        else
+            AddTexturedQuad(quadCreateInfo.quadId, quadCreateInfo.quadPositionType, quadCreateInfo.position, quadCreateInfo.dimensions, quadCreateInfo.color, quadCreateInfo.textureFilePath);
+    }
+
+    void Renderer::AddBasicQuad(uint32_t* quadId, const QuadPosType& positionType, const glm::vec2& position_in_pixels, const glm::vec2& dimensions_in_pixels, const glm::vec4& color, float z)
     {
         std::array<Vertex, 4> vertices;
-        GetQuadVertices(&vertices, positionType, position_in_pixels, dimensions_in_pixels, color);
+        GetQuadVertices(&vertices, positionType, position_in_pixels, dimensions_in_pixels, color, z);
 
         static bool first_time = true;
         static uint32_t batch_index = 0;
@@ -256,7 +265,7 @@ namespace FlameUI {
         s_Batches[batch_index]->AddQuad(vertices, &s_QuadDictionary[quad_id][1]);
     }
 
-    void Renderer::AddQuad(uint32_t* quadId, const QuadPosType& positionType, const glm::vec2& position_in_pixels,
+    void Renderer::AddTexturedQuad(uint32_t* quadId, const QuadPosType& positionType, const glm::vec2& position_in_pixels,
         const glm::vec2& dimensions_in_pixels, const glm::vec4& color, const std::string& textureFilePath)
     {
         std::array<Vertex, 4> vertices;
@@ -572,10 +581,10 @@ namespace FlameUI {
     }
 
     void Renderer::ChangeQuadVertices(uint32_t* quadId, const QuadPosType& positionType, const glm::vec2& position_in_pixels,
-        const glm::vec2& dimensions_in_pixels, const glm::vec4& color)
+        const glm::vec2& dimensions_in_pixels, const glm::vec4& color, float z)
     {
         std::array<Vertex, 4> vertices;
-        GetQuadVertices(&vertices, positionType, position_in_pixels, dimensions_in_pixels, color);
+        GetQuadVertices(&vertices, positionType, position_in_pixels, dimensions_in_pixels, color, z);
         s_Batches[s_QuadDictionary[*quadId][0]]->SetQuadVertices(s_QuadDictionary[*quadId][1], vertices);
     }
 

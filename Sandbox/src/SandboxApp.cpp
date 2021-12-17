@@ -4,12 +4,12 @@
 
 int main()
 {
-    std::shared_ptr<FlameBerry::Window> window = FlameBerry::Window::Create();
+    FlameBerry::Window window;
 
     FlameUI::Renderer::SetUIFont(FL_PROJECT_DIR + std::string("FlameUI/resources/fonts/OpenSans-Regular.ttf"));
     {
         FL_TIMER_SCOPE("renderer_init");
-        FlameUI::Renderer::Init(window->GetNativeWindow());
+        FlameUI::Renderer::Init(window.GetNativeWindow());
     }
 
     glm::vec4 white(1.0f);
@@ -20,32 +20,49 @@ int main()
     glm::vec4 dark_blue(0.0f, 0.0f, 1.0f, 1.0f);
     glm::vec4 red(1.0f, 0.0f, 0.0f, 1.0f);
 
-    std::shared_ptr<FlameUI::Panel> panel = FlameUI::Panel::Create("panel", { 0, 0 }, { 200, 550 }, white);
-    std::shared_ptr<FlameUI::Panel> panelOne = FlameUI::Panel::Create("panelOne", { 0, 0 }, { 250, 450 }, yellow);
-    std::shared_ptr<FlameUI::Panel> panelTwo = FlameUI::Panel::Create("panelTwo", { 0, 0 }, { 300, 600 }, purple);
-    std::shared_ptr<FlameUI::Panel> panelThree = FlameUI::Panel::Create("panelThree", { 0, 0 }, { 100, 400 }, blue);
+    FlameUI::PanelCreateInfo panel_create_info{};
+    panel_create_info.title = "panel";
+    panel_create_info.position = { 0, 0 };
+    panel_create_info.dimensions = { 200, 550 };
+    panel_create_info.color = white;
 
-    panel->AddButton("Click Me!", { 100, 50 }, yellow, "");
-    panel->AddButton("Click Me Too!", { 100, 50 }, black, "");
+    FlameUI::PanelCreateInfo panel_one_create_info{};
+    panel_one_create_info.title = "panelOne";
+    panel_one_create_info.position = { 0, 0 };
+    panel_one_create_info.dimensions = { 250, 450 };
+    panel_one_create_info.color = yellow;
 
-    FlameUI::_FlameUI::AddPanel(panel);
-    FlameUI::_FlameUI::AddPanel(panelOne);
-    FlameUI::_FlameUI::AddPanel(panelTwo);
-    FlameUI::_FlameUI::AddPanel(panelThree);
+    FlameUI::PanelCreateInfo panel_two_create_info{};
+    panel_two_create_info.title = "panelTwo";
+    panel_two_create_info.position = { 0, 0 };
+    panel_two_create_info.dimensions = { 300, 600 };
+    panel_two_create_info.color = purple;
 
-    FlameUI::_FlameUI::Init();
+    FlameUI::PanelCreateInfo panel_three_create_info{};
+    panel_three_create_info.title = "panelThree";
+    panel_three_create_info.position = { 0, 0 };
+    panel_three_create_info.dimensions = { 100, 400 };
+    panel_three_create_info.color = blue;
 
-    while (window->IsRunning())
+    FlameUI::Panel panel(panel_create_info);
+    FlameUI::Panel panelOne(panel_one_create_info);
+    FlameUI::Panel panelTwo(panel_two_create_info);
+    FlameUI::Panel panelThree(panel_three_create_info);
+
+    std::vector<FlameUI::Panel> panels = { panel, panelOne, panelTwo, panelThree };
+    FlameUI::EventPipeline::Prepare(panels);
+
+    while (window.IsRunning())
     {
         FL_TIMER_SCOPE("Per_Frame");
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
         FlameUI::Renderer::OnUpdate();
-        FlameUI::_FlameUI::OnUpdate();
+        FlameUI::EventPipeline::Execute();
         FlameUI::Renderer::OnDraw();
 
-        window->OnUpdate();
+        window.OnUpdate();
     }
     FlameUI::Renderer::CleanUp();
     glfwTerminate();

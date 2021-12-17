@@ -33,11 +33,29 @@ namespace FlameUI {
         glm::vec2 m_FramebufferSize;
     };
 
+    struct QuadCreateInfo
+    {
+        // Pointer to the variable where the unique Quad-Id should be stored
+        uint32_t* quadId;
+        // The type of position that is being provided, value can be 'FL_QUAD_POS_CENTER' or 'FL_QUAD_POS_BOTTOM_LEFT_VERTEX'
+        QuadPosType quadPositionType;
+        // The position (in pixel units) which will be used to calculate the opengl vertices according to the Quad Position Type given
+        glm::vec2   position;
+        // The dimensions (in pixel units) of the Quad
+        glm::vec2   dimensions;
+        // The color (in rgba format) of the Quad. Note: Only valid if no 'textureFilePath' is provided
+        glm::vec4   color;
+        // The absolute texture file path, which will be displayed on the quad
+        std::string textureFilePath;
+        // The Z Index of the Quad
+        float zIndex;
+    };
+
     class Renderer
     {
     public:
+        // The Init function should be called after the GLFW window creation and before the main loop
         static void        Init(GLFWwindow* window);
-        static uint32_t    GenQuadId();
         static void        OnResize();
         static bool        DoesQuadExist(uint32_t* quadId);
         static GLFWwindow* GetUserGLFWwindow();
@@ -55,15 +73,14 @@ namespace FlameUI {
         static void        SetQuadPosition(uint32_t* quadId, const glm::vec2& position_in_pixels);
         static void        SetQuadDimensions(uint32_t* quadId, const glm::vec2& dimensions_in_pixels);
         static void        SetQuadColor(uint32_t* quadId, const glm::vec4& color);
+        static void        AddQuad(const QuadCreateInfo& quadCreateInfo);
         static void        AddText(const std::string& text, const glm::vec2& position_in_pixels, float scale, const glm::vec4& color);
-        static void        AddQuad(uint32_t* quadId, const QuadPosType& positionType, const glm::vec2& position_in_pixels, const glm::vec2& dimensions_in_pixels, const glm::vec4& color);
-        static void        AddQuad(uint32_t* quadId, const QuadPosType& positionType, const glm::vec2& position_in_pixels, const glm::vec2& dimensions_in_pixels, const glm::vec4& color, const std::string& textureFilePath);
         // Currently doesn't work
         static void        RemoveQuad(uint32_t* quadId);
         static void        OnUpdate();
         static void        OnDraw();
         static void        ChangeQuadVertices(uint32_t* quadId, const std::array<Vertex, 4>& vertices);
-        static void        ChangeQuadVertices(uint32_t* quadId, const QuadPosType& positionType, const glm::vec2& position_in_pixels = glm::vec2(), const glm::vec2& dimensions_in_pixels = glm::vec2(), const glm::vec4& color = glm::vec4());
+        static void        ChangeQuadVertices(uint32_t* quadId, const QuadPosType& positionType, const glm::vec2& position_in_pixels = glm::vec2(), const glm::vec2& dimensions_in_pixels = glm::vec2(), const glm::vec4& color = glm::vec4(), float z = 0.0f);
         static void        CleanUp();
 
         /// Functions For Debug Purposes
@@ -74,9 +91,12 @@ namespace FlameUI {
         static std::tuple<std::string, std::string> ReadShaderSource(const std::string& filePath);
     private:
         /// Private Functions which will be used by the Renderer as Utilites
+        static uint32_t    GenQuadId();
         static void        LoadFont(const std::string& filePath);
-        static void        GetQuadVertices(std::array<Vertex, 4>* vertices, const QuadPosType& positionType, const glm::vec2& position_in_pixels, const glm::vec2& dimensions_in_pixels, const glm::vec4& color);
+        static void        GetQuadVertices(std::array<Vertex, 4>* vertices, const QuadPosType& positionType, const glm::vec2& position_in_pixels, const glm::vec2& dimensions_in_pixels, const glm::vec4& color, float z = 0.0f);
         static void        LoadTexture(uint32_t* quadId, const std::string& filePath);
+        static void        AddBasicQuad(uint32_t* quadId, const QuadPosType& positionType, const glm::vec2& position_in_pixels, const glm::vec2& dimensions_in_pixels, const glm::vec4& color, float z = 0.0f);
+        static void        AddTexturedQuad(uint32_t* quadId, const QuadPosType& positionType, const glm::vec2& position_in_pixels, const glm::vec2& dimensions_in_pixels, const glm::vec4& color, const std::string& textureFilePath);
         static void        AddQuadToTextBatch(uint32_t* quadId, const std::array<FlameUI::Vertex, 4>& vertices, uint32_t textureId);
     private:
         /// This value has to be set to whatever number of texture slots your GPU can support
