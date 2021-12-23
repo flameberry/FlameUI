@@ -18,6 +18,7 @@ namespace FlameUI {
     std::unordered_map<char, Renderer::Character> Renderer::s_Characters;
     std::vector<std::shared_ptr<Batch>>           Renderer::s_Batches;
     uint32_t                                      Renderer::s_UniformBufferId;
+    glm::vec2                                     Renderer::s_WindowContentScale;
     float                                         Renderer::s_AspectRatio = (float)(1280.0f / 720.0f);
     std::string                                   Renderer::s_UserFontFilePath = "";
 
@@ -153,10 +154,15 @@ namespace FlameUI {
     void Renderer::OnUpdate()
     {
         glClear(GL_DEPTH_BUFFER_BIT);
+
+        glm::vec2 scale;
+        glfwGetWindowContentScale(s_UserWindow, &scale.x, &scale.y);
+        s_WindowContentScale = scale;
+
         double x, y;
         glfwGetCursorPos(s_UserWindow, &x, &y);
-        s_CursorPosition.x = x - s_ViewportSize.x / 2.0f;
-        s_CursorPosition.y = -y + s_ViewportSize.y / 2.0f;
+        s_CursorPosition.x = x - s_ViewportSize.x / s_WindowContentScale.x / 2.0f;
+        s_CursorPosition.y = -y + s_ViewportSize.y / s_WindowContentScale.y / 2.0f;
         OnResize();
     }
 
@@ -224,6 +230,8 @@ namespace FlameUI {
 
         for (auto& vertex : (*vertices))
         {
+            vertex.position.x *= s_WindowContentScale.x;
+            vertex.position.y *= s_WindowContentScale.y;
             vertex.color = color;
             vertex.texture_index = -1.0f;
         }
@@ -236,10 +244,10 @@ namespace FlameUI {
 
     void Renderer::AddQuad(const QuadCreateInfo& quadCreateInfo)
     {
-        if (quadCreateInfo.textureFilePath == "")
-            AddBasicQuad(quadCreateInfo.quadId, quadCreateInfo.quadPositionType, quadCreateInfo.position, quadCreateInfo.dimensions, quadCreateInfo.color, quadCreateInfo.zIndex);
+        if (quadCreateInfo.textureFilePath == NULL)
+            AddBasicQuad(quadCreateInfo.quadId, quadCreateInfo.positionType, *quadCreateInfo.position, *quadCreateInfo.dimensions, *quadCreateInfo.color, quadCreateInfo.zIndex);
         else
-            AddTexturedQuad(quadCreateInfo.quadId, quadCreateInfo.quadPositionType, quadCreateInfo.position, quadCreateInfo.dimensions, quadCreateInfo.color, quadCreateInfo.textureFilePath);
+            AddTexturedQuad(quadCreateInfo.quadId, quadCreateInfo.positionType, *quadCreateInfo.position, *quadCreateInfo.dimensions, *quadCreateInfo.color, quadCreateInfo.textureFilePath);
     }
 
     void Renderer::AddBasicQuad(uint32_t* quadId, const QuadPosType& positionType, const glm::vec2& position_in_pixels, const glm::vec2& dimensions_in_pixels, const glm::vec4& color, float z)
@@ -275,7 +283,7 @@ namespace FlameUI {
         for (uint8_t i = 0; i < 4; i++)
             vertices[i].texture_index = slot;
         slot++;
-        if (slot == s_Max_Texture_Slots)
+        if (slot == MAX_TEXTURE_SLOTS)
             slot = 0;
 
         static uint32_t quad_id = 0;
@@ -422,7 +430,7 @@ namespace FlameUI {
                 vertex.texture_index = (float)slot;
 
             slot++;
-            if (slot == s_Max_Texture_Slots)
+            if (slot == MAX_TEXTURE_SLOTS)
                 slot = 0;
 
             for (uint8_t i = 0; i < 4; i++)
@@ -435,7 +443,6 @@ namespace FlameUI {
 
     void Renderer::OnDraw()
     {
-        FL_TIMER_SCOPE("Renderer_OnDraw()");
         /* Set Projection Matrix in GPU memory, for all shader programs to access it */
         GL_CHECK_ERROR(glBindBuffer(GL_UNIFORM_BUFFER, s_UniformBufferId));
         GL_CHECK_ERROR(glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(s_UniformBufferData.ProjectionMatrix)));
@@ -580,12 +587,11 @@ namespace FlameUI {
         s_Batches[s_QuadDictionary[*quadId][0]]->SetQuadVertices(s_QuadDictionary[*quadId][1], vertices);
     }
 
-    void Renderer::ChangeQuadVertices(uint32_t* quadId, const QuadPosType& positionType, const glm::vec2& position_in_pixels,
-        const glm::vec2& dimensions_in_pixels, const glm::vec4& color, float z)
+    void Renderer::ChangeQuadVertices(const QuadCreateInfo& quadCreateInfo)
     {
         std::array<Vertex, 4> vertices;
-        GetQuadVertices(&vertices, positionType, position_in_pixels, dimensions_in_pixels, color, z);
-        s_Batches[s_QuadDictionary[*quadId][0]]->SetQuadVertices(s_QuadDictionary[*quadId][1], vertices);
+        GetQuadVertices(&vertices, quadCreateInfo.positionType, *quadCreateInfo.position, *quadCreateInfo.dimensions, *quadCreateInfo.color, quadCreateInfo.zIndex);
+        s_Batches[s_QuadDictionary[*quadCreateInfo.quadId][0]]->SetQuadVertices(s_QuadDictionary[*quadCreateInfo.quadId][1], vertices);
     }
 
     std::array<Vertex*, 4>Renderer::GetPtrToQuadVertices(uint32_t* quadId)
@@ -703,7 +709,7 @@ namespace FlameUI {
 
         GLint location = glGetUniformLocation(shaderId, name.c_str());
         if (location == -1)
-            FL_LOG("Uniform \"{0}\" not found!", name);
+            FL_WARN("Uniform \"{0}\" not found!", name);
         m_UniformLocationCache[name] = location;
         return location;
     }

@@ -3,12 +3,10 @@ import subprocess
 import os
 from shutil import rmtree
 from Dependencies import flame_ui_project_dir
-from Dependencies import check_cmake_installation
 from Dependencies import check_cmd_line_tools_installation
 
 if __name__ == '__main__':
     os.chdir(flame_ui_project_dir)
-    check_cmake_installation()
     check_cmd_line_tools_installation()
 
     cmake_build_type = "Debug"

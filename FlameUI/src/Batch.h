@@ -4,6 +4,9 @@
 #include "Vertex.h"
 #include "datatypes.h"
 
+/// This Macro contains the max number of texture slots that the GPU supports, varies for each computer.
+#define MAX_TEXTURE_SLOTS 16
+
 namespace FlameUI {
     /// The type of quads that will be stored in a batch
     enum class BatchType { BasicQuad = 0, TexturedQuad, Text };
@@ -48,7 +51,7 @@ namespace FlameUI {
         void AddTextureId(uint32_t textureId) override;
         void SetQuadVertices(uint32_t location, const std::array<Vertex, 4>& vertices) override;
         void SetQuadZIndex(uint32_t location, float z) override;
-        void RemoveQuadVertices(uint32_t location, flame::optional<uint32_t>&prev_loc_of_new_vertices) override;
+        void RemoveQuadVertices(uint32_t location, flame::optional<uint32_t>& prev_loc_of_new_vertices) override;
         bool DoQuadVerticesExist(uint32_t location) override;
         bool IsFull() override;
 
@@ -77,7 +80,7 @@ namespace FlameUI {
         void AddTextureId(uint32_t textureId) override;
         void SetQuadVertices(uint32_t location, const std::array<Vertex, 4>& vertices) override;
         void SetQuadZIndex(uint32_t location, float z) override;
-        void RemoveQuadVertices(uint32_t location, flame::optional<uint32_t>&prev_loc_of_new_vertices) override;
+        void RemoveQuadVertices(uint32_t location, flame::optional<uint32_t>& prev_loc_of_new_vertices) override;
         bool DoQuadVerticesExist(uint32_t location) override;
         bool IsFull() override;
 
@@ -86,10 +89,8 @@ namespace FlameUI {
         glm::vec2              GetQuadDimensions(uint32_t location) override;
         std::array<Vertex*, 4> GetPtrToQuadVertices(uint32_t location) override;
     private:
-        /// This variable contains the max number of texture slots that the GPU supports, varies for each computer.
-        static const uint16_t s_Max_Texture_Slots = 16;
         /// Max number of quads are equal to max number of texture slots, as each quad needs one texture slot to be bound to.
-        static const uint16_t s_Max_Quads = s_Max_Texture_Slots;
+        static const uint16_t s_Max_Quads = MAX_TEXTURE_SLOTS;
         static const uint16_t s_Max_Vertices = 4 * s_Max_Quads;
         static const uint16_t s_Max_Indices = 6 * s_Max_Quads;
     private:
@@ -119,10 +120,8 @@ namespace FlameUI {
         glm::vec2              GetQuadDimensions(uint32_t location) override;
         std::array<Vertex*, 4> GetPtrToQuadVertices(uint32_t location) override;
     private:
-        /// This variable contains the max number of texture slots that the GPU supports, varies for each computer.
-        static const uint16_t s_Max_Texture_Slots = 16;
         /// Max number of quads are equal to max number of texture slots, as each quad needs one texture slot to be bound to.
-        static const uint16_t s_Max_Quads = s_Max_Texture_Slots;
+        static const uint16_t s_Max_Quads = MAX_TEXTURE_SLOTS;
         static const uint16_t s_Max_Vertices = 4 * s_Max_Quads;
         static const uint16_t s_Max_Indices = 6 * s_Max_Quads;
     private:

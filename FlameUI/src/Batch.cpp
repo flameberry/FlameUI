@@ -475,10 +475,10 @@ namespace FlameUI {
         glDetachShader(m_ShaderProgramId, fragment_shader);
 
         GL_CHECK_ERROR(glUseProgram(m_ShaderProgramId));
-        int samplers[s_Max_Texture_Slots];
-        for (uint16_t i = 0; i < s_Max_Texture_Slots; i++)
+        int samplers[MAX_TEXTURE_SLOTS];
+        for (uint16_t i = 0; i < MAX_TEXTURE_SLOTS; i++)
             samplers[i] = (int)i;
-        GL_CHECK_ERROR(glUniform1iv(Renderer::GetUniformLocation("u_TextureSamplers", m_ShaderProgramId), s_Max_Texture_Slots, samplers));
+        GL_CHECK_ERROR(glUniform1iv(Renderer::GetUniformLocation("u_TextureSamplers", m_ShaderProgramId), MAX_TEXTURE_SLOTS, samplers));
 
         GL_CHECK_ERROR(glUseProgram(0));
     }
@@ -724,11 +724,11 @@ namespace FlameUI {
 
         GL_CHECK_ERROR(glUseProgram(m_ShaderProgramId));
 
-        int samplers[s_Max_Texture_Slots];
-        for (uint16_t i = 0; i < s_Max_Texture_Slots; i++)
+        int samplers[MAX_TEXTURE_SLOTS];
+        for (uint16_t i = 0; i < MAX_TEXTURE_SLOTS; i++)
             samplers[i] = (int)i;
 
-        GL_CHECK_ERROR(glUniform1iv(Renderer::GetUniformLocation("u_TextureSamplers", m_ShaderProgramId), s_Max_Texture_Slots, samplers));
+        GL_CHECK_ERROR(glUniform1iv(Renderer::GetUniformLocation("u_TextureSamplers", m_ShaderProgramId), MAX_TEXTURE_SLOTS, samplers));
 
         GL_CHECK_ERROR(glUniform1f(Renderer::GetUniformLocation("u_PixelRange", m_ShaderProgramId), Renderer::GetFontProps().PixelRange));
         GL_CHECK_ERROR(glUniform1f(Renderer::GetUniformLocation("u_Strength", m_ShaderProgramId), Renderer::GetFontProps().Strength));

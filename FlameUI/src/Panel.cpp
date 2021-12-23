@@ -23,10 +23,10 @@ namespace FlameUI {
         // Create the main panel
         QuadCreateInfo quad_create_info{};
         quad_create_info.quadId = &m_PanelQuadId;
-        quad_create_info.quadPositionType = FL_QUAD_POS_CENTER;
-        quad_create_info.position = m_Position;
-        quad_create_info.dimensions = m_Dimensions;
-        quad_create_info.color = m_Color;
+        quad_create_info.positionType = FL_QUAD_POS_CENTER;
+        quad_create_info.position = &m_Position;
+        quad_create_info.dimensions = &m_Dimensions;
+        quad_create_info.color = &m_Color;
 
         Renderer::AddQuad(quad_create_info);
     }
@@ -87,7 +87,14 @@ namespace FlameUI {
 
     void Panel::InvalidateRenderData()
     {
-        Renderer::ChangeQuadVertices(&m_PanelQuadId, FL_QUAD_POS_CENTER, m_Position, m_Dimensions, m_Color, m_ZIndex);
+        QuadCreateInfo quad_create_info{};
+        quad_create_info.quadId = &m_PanelQuadId;
+        quad_create_info.positionType = FL_QUAD_POS_CENTER;
+        quad_create_info.position = &m_Position;
+        quad_create_info.dimensions = &m_Dimensions;
+        quad_create_info.color = &m_Color;
+        quad_create_info.zIndex = m_ZIndex;
+        Renderer::ChangeQuadVertices(quad_create_info);
     }
 
     void Panel::SetZIndex(float z)

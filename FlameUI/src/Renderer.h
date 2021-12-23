@@ -38,15 +38,15 @@ namespace FlameUI {
         // Pointer to the variable where the unique Quad-Id should be stored
         uint32_t* quadId;
         // The type of position that is being provided, value can be 'FL_QUAD_POS_CENTER' or 'FL_QUAD_POS_BOTTOM_LEFT_VERTEX'
-        QuadPosType quadPositionType;
+        QuadPosType positionType;
         // The position (in pixel units) which will be used to calculate the opengl vertices according to the Quad Position Type given
-        glm::vec2   position;
+        glm::vec2* position;
         // The dimensions (in pixel units) of the Quad
-        glm::vec2   dimensions;
+        glm::vec2* dimensions;
         // The color (in rgba format) of the Quad. Note: Only valid if no 'textureFilePath' is provided
-        glm::vec4   color;
+        glm::vec4* color;
         // The absolute texture file path, which will be displayed on the quad
-        std::string textureFilePath;
+        const char* textureFilePath;
         // The Z Index of the Quad
         float zIndex;
     };
@@ -80,7 +80,7 @@ namespace FlameUI {
         static void        OnUpdate();
         static void        OnDraw();
         static void        ChangeQuadVertices(uint32_t* quadId, const std::array<Vertex, 4>& vertices);
-        static void        ChangeQuadVertices(uint32_t* quadId, const QuadPosType& positionType, const glm::vec2& position_in_pixels = glm::vec2(), const glm::vec2& dimensions_in_pixels = glm::vec2(), const glm::vec4& color = glm::vec4(), float z = 0.0f);
+        static void        ChangeQuadVertices(const QuadCreateInfo& quadCreateInfo);
         static void        CleanUp();
 
         /// Functions For Debug Purposes
@@ -98,9 +98,6 @@ namespace FlameUI {
         static void        AddBasicQuad(uint32_t* quadId, const QuadPosType& positionType, const glm::vec2& position_in_pixels, const glm::vec2& dimensions_in_pixels, const glm::vec4& color, float z = 0.0f);
         static void        AddTexturedQuad(uint32_t* quadId, const QuadPosType& positionType, const glm::vec2& position_in_pixels, const glm::vec2& dimensions_in_pixels, const glm::vec4& color, const std::string& textureFilePath);
         static void        AddQuadToTextBatch(uint32_t* quadId, const std::array<FlameUI::Vertex, 4>& vertices, uint32_t textureId);
-    private:
-        /// This value has to be set to whatever number of texture slots your GPU can support
-        static const uint16_t s_Max_Texture_Slots = 16;
     private:
         /// Struct that contains all the matrices needed by the shader, which will be stored in a Uniform Buffer
         struct UniformBufferData { glm::mat4 ProjectionMatrix; };
@@ -122,6 +119,8 @@ namespace FlameUI {
     public:
         static FontProps& GetFontProps() { return s_FontProps; }
     private:
+        /// Stores the window content scale, useful for correct scaling on retina displays
+        static glm::vec2                                 s_WindowContentScale;
         /// AspectRatio used for converting pixel coordinates to opengl coordinates
         static float                                     s_AspectRatio;
         /// The RendererId needed for the Uniform Buffer

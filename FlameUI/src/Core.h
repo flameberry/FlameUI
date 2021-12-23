@@ -98,11 +98,7 @@ GL_ERROR()
 #endif
 
 namespace FlameUI {
-    enum class QuadPosType
-    {
-        None = 0, QuadPosBottomLeftVertex, QuadPosCenter
-    };
-
+    enum class QuadPosType { None = 0, QuadPosBottomLeftVertex, QuadPosCenter };
     struct Bounds
     {
         float Left, Right, Bottom, Top;

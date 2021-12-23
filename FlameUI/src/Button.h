@@ -6,8 +6,8 @@
 // namespace FlameUI {
 //     struct QuadProps
 //     {
-//         glm::vec2  position_in_pixels;
-//         glm::vec2  dimensions_in_pixels;
+//         glm::vec2   position_in_pixels;
+//         glm::vec2   dimensions_in_pixels;
 //         glm::vec4   color;
 //         std::string texture_filepath;
 

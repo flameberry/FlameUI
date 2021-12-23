@@ -7,10 +7,7 @@ int main()
     FlameBerry::Window window;
 
     FlameUI::Renderer::SetUIFont(FL_PROJECT_DIR + std::string("FlameUI/resources/fonts/OpenSans-Regular.ttf"));
-    {
-        FL_TIMER_SCOPE("renderer_init");
-        FlameUI::Renderer::Init(window.GetNativeWindow());
-    }
+    FlameUI::Renderer::Init(window.GetNativeWindow());
 
     glm::vec4 white(1.0f);
     glm::vec4 yellow(1.0f, 1.0f, 0.0f, 1.0f);
@@ -19,6 +16,12 @@ int main()
     glm::vec4 black(0.0f, 0.0f, 0.0f, 1.0f);
     glm::vec4 dark_blue(0.0f, 0.0f, 1.0f, 1.0f);
     glm::vec4 red(1.0f, 0.0f, 0.0f, 1.0f);
+
+    // FlameUI::Renderer::AddText("Welcome to the glorius Flameberry Engine!", { -600, 0 }, 2.0f, yellow);
+
+    GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
+    const char* monitorName = glfwGetMonitorName(primaryMonitor);
+    FL_INFO("Monitor name is '{0}'", monitorName);
 
     FlameUI::PanelCreateInfo panel_create_info{};
     panel_create_info.title = "panel";

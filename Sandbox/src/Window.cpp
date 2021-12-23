@@ -18,6 +18,7 @@ namespace FlameBerry {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 #ifdef __APPLE__
+        glfwWindowHint(GLFW_COCOA_RETINA_FRAMEBUFFER, GLFW_TRUE);
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
 #endif
 
@@ -34,7 +35,9 @@ namespace FlameBerry {
             std::cout << "Failed to initialize GLAD" << std::endl;
         }
 
-        glViewport(0, 0, width, height);
+        int actualWidth, actualHeight;
+        glfwGetFramebufferSize(m_Window, &actualWidth, &actualHeight);
+        glViewport(0, 0, actualWidth, actualHeight);
 
         glfwSetWindowUserPointer(m_Window, &m_WindowDimensions);
 

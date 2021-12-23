@@ -6,3 +6,4 @@ TODO:
 #1 Tidy the program
 #2 Add title bar support for panels
 #3 Improve the Event Pipeline Class
+#4 Add MultiThreading Support
