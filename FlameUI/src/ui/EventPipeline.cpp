@@ -1,6 +1,6 @@
 #include "EventPipeline.h"
 #include <glm/glm.hpp>
-#include "Renderer.h"
+#include "../renderer/Renderer.h"
 
 #define FL_NOT_CLICKED -2
 #define FL_CLICKED_ON_NOTHING -1
@@ -13,7 +13,16 @@ namespace FlameUI {
 
     void EventPipeline::Prepare(const std::vector<Panel>& panels)
     {
+        if (!panels.size())
+        {
+            FL_WARN("No Panels provided to the Event Pipeline!");
+            return;
+        }
         glm::vec2 viewportSize = Renderer::GetViewportSize();
+        const float left = -viewportSize.x / 2.0f / Renderer::GetWindowContentScale().x;
+        const float right = -left;
+        const float bottom = -viewportSize.y / 2.0f / Renderer::GetWindowContentScale().y;
+        const float top = -bottom;
         s_Panels = panels;
         s_DepthValues.resize(s_Panels.size());
         s_PanelPositions.resize(s_Panels.size());
@@ -29,7 +38,7 @@ namespace FlameUI {
                 s_PanelPositions[i] = i;
             }
         }
-        s_Dockspaces.emplace_back(-viewportSize.x / 2.0f, viewportSize.x / 2.0f, -viewportSize.y / 2.0f, viewportSize.y / 2.0f);
+        s_Dockspaces.emplace_back(left, right, bottom, top);
     }
 
     void EventPipeline::Execute()
@@ -37,7 +46,14 @@ namespace FlameUI {
         // Get all variables which will be needed for all the event handling
         GLFWwindow* window = Renderer::GetUserGLFWwindow();
         glm::vec2 viewportSize = Renderer::GetViewportSize();
+        const float left = -viewportSize.x / 2.0f / Renderer::GetWindowContentScale().x;
+        const float right = -left;
+        const float bottom = -viewportSize.y / 2.0f / Renderer::GetWindowContentScale().y;
+        const float top = -bottom;
         glm::vec2 cursor_pos = Renderer::GetCursorPosition();
+
+        for (auto& dockspace : s_Dockspaces)
+            dockspace.SetBounds({ left, right, bottom, top });
 
         // Handle window focusing based on mouse events
         InvalidateFocus();
@@ -62,7 +78,6 @@ namespace FlameUI {
 
                 // Setting some constants
                 const float resize_border_offset = 3.0f;
-                const float min_panel_width = 10.0f, min_panel_height = 10.0f;
 
                 // Setting Booleans to store the cursor position w.r.t the panel
                 bool is_in_panel_area_x = cursor_pos.x >= panel_bounds.Left - resize_border_offset && cursor_pos.x <= panel_bounds.Right + resize_border_offset;
@@ -81,6 +96,8 @@ namespace FlameUI {
                 bool is_on_bottom_border = is_in_panel_area && (!is_on_corners) && (cursor_pos.y <= panel_bounds.Bottom + resize_border_offset);
                 bool is_on_borders = is_on_corners || is_on_left_border || is_on_right_border || is_on_top_border || is_on_bottom_border;
 
+                bool is_cursor_on_title_bar = is_in_panel_area && cursor_pos.y >= panel_bounds.Top - TITLE_BAR_HEIGHT;
+
                 // Set all the states of panel
                 // Setting GrabState and DockState of the panel
                 if (!panel.IsResizing())
@@ -92,7 +109,7 @@ namespace FlameUI {
                         {
                             if (!panel.IsGrabbed())
                             {
-                                if (panel.IsDocked())
+                                if (panel.IsDocked() && is_cursor_on_title_bar)
                                 {
                                     switch (panel.GetDetailedDockState())
                                     {
@@ -122,24 +139,24 @@ namespace FlameUI {
 
                     if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE)
                     {
-                        if (panel.IsGrabbed())
+                        if (panel.IsGrabbed() && is_cursor_on_title_bar)
                         {
-                            if (cursor_pos.x <= -viewportSize.x / 2.0f + 100.0f && !s_Dockspaces[0].IsLeftOccupied())
+                            if (cursor_pos.x <= left + 100.0f && !s_Dockspaces[0].IsLeftOccupied())
                             {
                                 panel.SetDockstate(DockState::Docked);
                                 panel.SetDetailedDockstate(DetailedDockState::DockedLeft);
                             }
-                            else if (cursor_pos.x >= viewportSize.x / 2.0f - 100.0f && !s_Dockspaces[0].IsRightOccupied())
+                            else if (cursor_pos.x >= right - 100.0f && !s_Dockspaces[0].IsRightOccupied())
                             {
                                 panel.SetDockstate(DockState::Docked);
                                 panel.SetDetailedDockstate(DetailedDockState::DockedRight);
                             }
-                            else if (cursor_pos.y <= -viewportSize.y / 2.0f + 50.0f && !s_Dockspaces[0].IsBottomOccupied())
+                            else if (cursor_pos.y <= bottom + 50.0f && !s_Dockspaces[0].IsBottomOccupied())
                             {
                                 panel.SetDockstate(DockState::Docked);
                                 panel.SetDetailedDockstate(DetailedDockState::DockedBottom);
                             }
-                            else if (cursor_pos.y >= viewportSize.y / 2.0f - 50.0f && !s_Dockspaces[0].IsTopOccupied())
+                            else if (cursor_pos.y >= top - 50.0f && !s_Dockspaces[0].IsTopOccupied())
                             {
                                 panel.SetDockstate(DockState::Docked);
                                 panel.SetDetailedDockstate(DetailedDockState::DockedTop);
@@ -202,147 +219,69 @@ namespace FlameUI {
                 }
 
                 // Grabbing Event Handling
-
-                if (panel.IsGrabbed())
+                if (panel.IsGrabbed() && (!panel.IsDocked() || is_cursor_on_title_bar))
                     panel_position = { cursor_pos.x - panel.GetOffsetOfCursorFromCenter().x , cursor_pos.y - panel.GetOffsetOfCursorFromCenter().y };
                 // -----------------------
 
                 // Resizing Event Handling
                 if (panel.IsResizing())
                 {
+                    Metrics panelMetricsAfterResizing;
                     switch (panel.GetDetailedResizeState())
                     {
                     case DetailedResizeState::ResizingLeftBorder:
                     {
-                        float right_border_x_coord = panel_position.x + panel_dimensions.x / 2.0f;
-                        if (right_border_x_coord - cursor_pos.x >= min_panel_width)
-                            panel_dimensions.x = right_border_x_coord - cursor_pos.x;
-                        else
-                            panel_dimensions.x = min_panel_width;
-                        panel_position.x = right_border_x_coord - panel_dimensions.x / 2.0f;
+                        panelMetricsAfterResizing = GetPanelMetricsForResizingLeft({ panel_position, panel_dimensions }, cursor_pos);
                         cursor = glfwCreateStandardCursor(GLFW_HRESIZE_CURSOR);
                         break;
                     }
                     case DetailedResizeState::ResizingRightBorder:
                     {
-                        float left_border_x_coord = panel_position.x - panel_dimensions.x / 2.0f;
-                        if (cursor_pos.x - left_border_x_coord >= min_panel_width)
-                            panel_dimensions.x = cursor_pos.x - left_border_x_coord;
-                        else
-                            panel_dimensions.x = min_panel_width;
-                        panel_position.x = left_border_x_coord + panel_dimensions.x / 2.0f;
+                        panelMetricsAfterResizing = GetPanelMetricsForResizingRight({ panel_position, panel_dimensions }, cursor_pos);
                         cursor = glfwCreateStandardCursor(GLFW_HRESIZE_CURSOR);
                         break;
                     }
                     case DetailedResizeState::ResizingBottomBorder:
                     {
-                        float top_border_y_coord = panel_position.y + panel_dimensions.y / 2.0f;
-                        if (top_border_y_coord - cursor_pos.y >= min_panel_height)
-                            panel_dimensions.y = top_border_y_coord - cursor_pos.y;
-                        else
-                            panel_dimensions.y = min_panel_height;
-                        panel_position.y = top_border_y_coord - panel_dimensions.y / 2.0f;
+                        panelMetricsAfterResizing = GetPanelMetricsForResizingBottom({ panel_position, panel_dimensions }, cursor_pos);
                         cursor = glfwCreateStandardCursor(GLFW_VRESIZE_CURSOR);
                         break;
                     }
                     case DetailedResizeState::ResizingTopBorder:
                     {
-                        float bottom_border_y_coord = panel_position.y - panel_dimensions.y / 2.0f;
-                        if (cursor_pos.y - bottom_border_y_coord >= min_panel_height)
-                            panel_dimensions.y = cursor_pos.y - bottom_border_y_coord;
-                        else
-                            panel_dimensions.y = min_panel_height;
-                        panel_position.y = bottom_border_y_coord + panel_dimensions.y / 2.0f;
+                        panelMetricsAfterResizing = GetPanelMetricsForResizingTop({ panel_position, panel_dimensions }, cursor_pos);
                         cursor = glfwCreateStandardCursor(GLFW_VRESIZE_CURSOR);
                         break;
                     }
                     case DetailedResizeState::ResizingBottomLeftCorner:
                     {
-                        // Left Resizing Event handling
-                        float right_border_x_coord = panel_position.x + panel_dimensions.x / 2.0f;
-                        if (right_border_x_coord - cursor_pos.x >= min_panel_width)
-                            panel_dimensions.x = right_border_x_coord - cursor_pos.x;
-                        else
-                            panel_dimensions.x = min_panel_width;
-                        panel_position.x = right_border_x_coord - panel_dimensions.x / 2.0f;
-
-                        // Bottom Resizing Event handling
-                        float top_border_y_coord = panel_position.y + panel_dimensions.y / 2.0f;
-                        if (top_border_y_coord - cursor_pos.y >= min_panel_height)
-                            panel_dimensions.y = top_border_y_coord - cursor_pos.y;
-                        else
-                            panel_dimensions.y = min_panel_height;
-                        panel_position.y = top_border_y_coord - panel_dimensions.y / 2.0f;
-
+                        panelMetricsAfterResizing = GetPanelMetricsForResizingBottom(GetPanelMetricsForResizingLeft({ panel_position, panel_dimensions }, cursor_pos), cursor_pos);
                         cursor = glfwCreateStandardCursor(GLFW_RESIZE_NESW_CURSOR);
                         break;
                     }
                     case DetailedResizeState::ResizingBottomRightCorner:
                     {
-                        // Right Resizing Event handling
-                        float left_border_x_coord = panel_position.x - panel_dimensions.x / 2.0f;
-                        if (cursor_pos.x - left_border_x_coord >= min_panel_width)
-                            panel_dimensions.x = cursor_pos.x - left_border_x_coord;
-                        else
-                            panel_dimensions.x = min_panel_width;
-                        panel_position.x = left_border_x_coord + panel_dimensions.x / 2.0f;
-
-                        // Bottom Resizing Event handling
-                        float top_border_y_coord = panel_position.y + panel_dimensions.y / 2.0f;
-                        if (top_border_y_coord - cursor_pos.y >= min_panel_height)
-                            panel_dimensions.y = top_border_y_coord - cursor_pos.y;
-                        else
-                            panel_dimensions.y = min_panel_height;
-                        panel_position.y = top_border_y_coord - panel_dimensions.y / 2.0f;
-
+                        panelMetricsAfterResizing = GetPanelMetricsForResizingRight(GetPanelMetricsForResizingBottom({ panel_position, panel_dimensions }, cursor_pos), cursor_pos);
                         cursor = glfwCreateStandardCursor(GLFW_RESIZE_NWSE_CURSOR);
                         break;
                     }
                     case DetailedResizeState::ResizingTopLeftCorner:
                     {
-                        // Left Resizing Event handling
-                        float right_border_x_coord = panel_position.x + panel_dimensions.x / 2.0f;
-                        if (right_border_x_coord - cursor_pos.x >= min_panel_width)
-                            panel_dimensions.x = right_border_x_coord - cursor_pos.x;
-                        else
-                            panel_dimensions.x = min_panel_width;
-                        panel_position.x = right_border_x_coord - panel_dimensions.x / 2.0f;
-
-                        // Top Resizing Event handling
-                        float bottom_border_y_coord = panel_position.y - panel_dimensions.y / 2.0f;
-                        if (cursor_pos.y - bottom_border_y_coord >= min_panel_height)
-                            panel_dimensions.y = cursor_pos.y - bottom_border_y_coord;
-                        else
-                            panel_dimensions.y = min_panel_height;
-                        panel_position.y = bottom_border_y_coord + panel_dimensions.y / 2.0f;
-
+                        panelMetricsAfterResizing = GetPanelMetricsForResizingLeft(GetPanelMetricsForResizingTop({ panel_position, panel_dimensions }, cursor_pos), cursor_pos);
                         cursor = glfwCreateStandardCursor(GLFW_RESIZE_NWSE_CURSOR);
                         break;
                     }
                     case DetailedResizeState::ResizingTopRightCorner:
                     {
-                        // Right Resizing Event handling
-                        float left_border_x_coord = panel_position.x - panel_dimensions.x / 2.0f;
-                        if (cursor_pos.x - left_border_x_coord >= min_panel_width)
-                            panel_dimensions.x = cursor_pos.x - left_border_x_coord;
-                        else
-                            panel_dimensions.x = min_panel_width;
-                        panel_position.x = left_border_x_coord + panel_dimensions.x / 2.0f;
-
-                        // Top Resizing Event handling
-                        float bottom_border_y_coord = panel_position.y - panel_dimensions.y / 2.0f;
-                        if (cursor_pos.y - bottom_border_y_coord >= min_panel_height)
-                            panel_dimensions.y = cursor_pos.y - bottom_border_y_coord;
-                        else
-                            panel_dimensions.y = min_panel_height;
-                        panel_position.y = bottom_border_y_coord + panel_dimensions.y / 2.0f;
-
+                        panelMetricsAfterResizing = GetPanelMetricsForResizingRight(GetPanelMetricsForResizingTop({ panel_position, panel_dimensions }, cursor_pos), cursor_pos);
                         cursor = glfwCreateStandardCursor(GLFW_RESIZE_NESW_CURSOR);
                         break;
                     }
                     case DetailedResizeState::NotResizing:
                         break;
                     }
+                    panel_position = panelMetricsAfterResizing.position;
+                    panel_dimensions = panelMetricsAfterResizing.dimensions;
                 }
 
                 // Finally set the cursor depending upon the resize state
@@ -354,51 +293,114 @@ namespace FlameUI {
             // Docking Events Handling
             // IMP: Curently broken
             // TODO: Fix Docking
-            if (false)
+            if (true)
             {
                 if (panel.IsDocked())
                 {
+                    Metrics panelMetricsAfterDocked;
                     switch (panel.GetDetailedDockState())
                     {
                     case DetailedDockState::DockedLeft:
                     {
-                        Metrics docked_panel_metrics = s_Dockspaces[0].GetPanelMetricsForDockingLeft(panel_position, panel_dimensions);
-                        panel_position = docked_panel_metrics.position;
-                        panel_dimensions = docked_panel_metrics.dimensions;
+                        panelMetricsAfterDocked = s_Dockspaces[0].GetPanelMetricsForDockingLeft(panel_position, panel_dimensions);
                         s_Dockspaces[0].SetLeftPanel(&panel);
-                        FL_LOG("Docked '{0}' Left", panel.GetPanelName());
+                        panel.SetZIndex(0.0f);
+
+                        // When resizing while docking adjacent docked panels must also be resized accordingly
+                        if (panel.GetDetailedResizeState() == DetailedResizeState::ResizingRightBorder)
+                        {
+                            if (s_Dockspaces[0].IsBottomOccupied())
+                            {
+                                Metrics bottomPanelMetrics = GetPanelMetricsForResizingLeft({ s_Dockspaces[0].GetBottomPanel()->GetPosition(), s_Dockspaces[0].GetBottomPanel()->GetDimensions() }, cursor_pos);
+                                s_Dockspaces[0].GetBottomPanel()->SetPosition(bottomPanelMetrics.position);
+                                s_Dockspaces[0].GetBottomPanel()->SetDimensions(bottomPanelMetrics.dimensions);
+                            }
+                            if (s_Dockspaces[0].IsTopOccupied())
+                            {
+                                Metrics topPanelMetrics = GetPanelMetricsForResizingLeft({ s_Dockspaces[0].GetTopPanel()->GetPosition(), s_Dockspaces[0].GetTopPanel()->GetDimensions() }, cursor_pos);
+                                s_Dockspaces[0].GetTopPanel()->SetPosition(topPanelMetrics.position);
+                                s_Dockspaces[0].GetTopPanel()->SetDimensions(topPanelMetrics.dimensions);
+                            }
+                        }
                         break;
                     }
                     case DetailedDockState::DockedRight:
                     {
-                        Metrics docked_panel_metrics = s_Dockspaces[0].GetPanelMetricsForDockingRight(panel_dimensions);
-                        panel_position = docked_panel_metrics.position;
-                        panel_dimensions = docked_panel_metrics.dimensions;
+                        panelMetricsAfterDocked = s_Dockspaces[0].GetPanelMetricsForDockingRight(panel_position, panel_dimensions);
                         s_Dockspaces[0].SetRightPanel(&panel);
-                        FL_LOG("Docked '{0}' Right", panel.GetPanelName());
+                        panel.SetZIndex(0.0f);
+
+                        // When resizing while docking adjacent docked panels must also be resized accordingly
+                        if (panel.GetDetailedResizeState() == DetailedResizeState::ResizingLeftBorder)
+                        {
+                            if (s_Dockspaces[0].IsBottomOccupied())
+                            {
+                                Metrics bottomPanelMetrics = GetPanelMetricsForResizingRight({ s_Dockspaces[0].GetBottomPanel()->GetPosition(), s_Dockspaces[0].GetBottomPanel()->GetDimensions() }, cursor_pos);
+                                s_Dockspaces[0].GetBottomPanel()->SetPosition(bottomPanelMetrics.position);
+                                s_Dockspaces[0].GetBottomPanel()->SetDimensions(bottomPanelMetrics.dimensions);
+                            }
+                            if (s_Dockspaces[0].IsTopOccupied())
+                            {
+                                Metrics topPanelMetrics = GetPanelMetricsForResizingRight({ s_Dockspaces[0].GetTopPanel()->GetPosition(), s_Dockspaces[0].GetTopPanel()->GetDimensions() }, cursor_pos);
+                                s_Dockspaces[0].GetTopPanel()->SetPosition(topPanelMetrics.position);
+                                s_Dockspaces[0].GetTopPanel()->SetDimensions(topPanelMetrics.dimensions);
+                            }
+                        }
                         break;
                     }
                     case DetailedDockState::DockedBottom:
                     {
-                        Metrics docked_panel_metrics = s_Dockspaces[0].GetPanelMetricsForDockingBottom(panel_dimensions);
-                        panel_position = docked_panel_metrics.position;
-                        panel_dimensions = docked_panel_metrics.dimensions;
+                        panelMetricsAfterDocked = s_Dockspaces[0].GetPanelMetricsForDockingBottom(panel_position, panel_dimensions);
                         s_Dockspaces[0].SetBottomPanel(&panel);
-                        FL_LOG("Docked '{0}' Bottom", panel.GetPanelName());
+                        panel.SetZIndex(0.0f);
+
+                        // When resizing while docking adjacent docked panels must also be resized accordingly
+                        if (panel.GetDetailedResizeState() == DetailedResizeState::ResizingTopBorder)
+                        {
+                            if (s_Dockspaces[0].IsLeftOccupied())
+                            {
+                                Metrics leftPanelMetrics = GetPanelMetricsForResizingBottom({ s_Dockspaces[0].GetLeftPanel()->GetPosition(), s_Dockspaces[0].GetLeftPanel()->GetDimensions() }, cursor_pos);
+                                s_Dockspaces[0].GetLeftPanel()->SetPosition(leftPanelMetrics.position);
+                                s_Dockspaces[0].GetLeftPanel()->SetDimensions(leftPanelMetrics.dimensions);
+                            }
+                            if (s_Dockspaces[0].IsRightOccupied())
+                            {
+                                Metrics rightPanelMetrics = GetPanelMetricsForResizingBottom({ s_Dockspaces[0].GetRightPanel()->GetPosition(), s_Dockspaces[0].GetRightPanel()->GetDimensions() }, cursor_pos);
+                                s_Dockspaces[0].GetRightPanel()->SetPosition(rightPanelMetrics.position);
+                                s_Dockspaces[0].GetRightPanel()->SetDimensions(rightPanelMetrics.dimensions);
+                            }
+                        }
                         break;
                     }
                     case DetailedDockState::DockedTop:
                     {
-                        Metrics docked_panel_metrics = s_Dockspaces[0].GetPanelMetricsForDockingTop(panel_dimensions);
-                        panel_position = docked_panel_metrics.position;
-                        panel_dimensions = docked_panel_metrics.dimensions;
+                        panelMetricsAfterDocked = s_Dockspaces[0].GetPanelMetricsForDockingTop(panel_position, panel_dimensions);
                         s_Dockspaces[0].SetTopPanel(&panel);
-                        FL_LOG("Docked '{0}' Top", panel.GetPanelName());
+                        panel.SetZIndex(0.0f);
+
+                        // When resizing while docking adjacent docked panels must also be resized accordingly
+                        if (panel.GetDetailedResizeState() == DetailedResizeState::ResizingBottomBorder)
+                        {
+                            if (s_Dockspaces[0].IsLeftOccupied())
+                            {
+                                Metrics leftPanelMetrics = GetPanelMetricsForResizingTop({ s_Dockspaces[0].GetLeftPanel()->GetPosition(), s_Dockspaces[0].GetLeftPanel()->GetDimensions() }, cursor_pos);
+                                s_Dockspaces[0].GetLeftPanel()->SetPosition(leftPanelMetrics.position);
+                                s_Dockspaces[0].GetLeftPanel()->SetDimensions(leftPanelMetrics.dimensions);
+                            }
+                            if (s_Dockspaces[0].IsRightOccupied())
+                            {
+                                Metrics rightPanelMetrics = GetPanelMetricsForResizingTop({ s_Dockspaces[0].GetRightPanel()->GetPosition(), s_Dockspaces[0].GetRightPanel()->GetDimensions() }, cursor_pos);
+                                s_Dockspaces[0].GetRightPanel()->SetPosition(rightPanelMetrics.position);
+                                s_Dockspaces[0].GetRightPanel()->SetDimensions(rightPanelMetrics.dimensions);
+                            }
+                        }
                         break;
                     }
                     default:
                         break;
                     }
+                    panel_position = panelMetricsAfterDocked.position;
+                    panel_dimensions = panelMetricsAfterDocked.dimensions;
                 }
             }
             // ----------------------------------------------------------------------------------------------
@@ -507,5 +509,54 @@ namespace FlameUI {
         s_PanelPositions[current_panel_index] = 0;
         for (uint16_t i = 0; i < s_Panels.size(); i++)
             s_Panels[i].SetZIndex(s_DepthValues[s_PanelPositions[i]]);
+    }
+
+    Metrics EventPipeline::GetPanelMetricsForResizingLeft(const Metrics& panelMetrics, const glm::vec2& cursorPosition)
+    {
+        Metrics newPanelMetrics = panelMetrics;
+
+        float right_border_x_coord = newPanelMetrics.position.x + newPanelMetrics.dimensions.x / 2.0f;
+        if (right_border_x_coord - cursorPosition.x >= MIN_PANEL_WIDTH)
+            newPanelMetrics.dimensions.x = right_border_x_coord - cursorPosition.x;
+        else
+            newPanelMetrics.dimensions.x = MIN_PANEL_WIDTH;
+        newPanelMetrics.position.x = right_border_x_coord - newPanelMetrics.dimensions.x / 2.0f;
+        return newPanelMetrics;
+    }
+
+    Metrics EventPipeline::GetPanelMetricsForResizingRight(const Metrics& panelMetrics, const glm::vec2& cursorPosition)
+    {
+        Metrics newPanelMetrics = panelMetrics;
+        float left_border_x_coord = newPanelMetrics.position.x - newPanelMetrics.dimensions.x / 2.0f;
+        if (cursorPosition.x - left_border_x_coord >= MIN_PANEL_WIDTH)
+            newPanelMetrics.dimensions.x = cursorPosition.x - left_border_x_coord;
+        else
+            newPanelMetrics.dimensions.x = MIN_PANEL_WIDTH;
+        newPanelMetrics.position.x = left_border_x_coord + newPanelMetrics.dimensions.x / 2.0f;
+        return newPanelMetrics;
+    }
+
+    Metrics EventPipeline::GetPanelMetricsForResizingBottom(const Metrics& panelMetrics, const glm::vec2& cursorPosition)
+    {
+        Metrics newPanelMetrics = panelMetrics;
+        float top_border_y_coord = newPanelMetrics.position.y + newPanelMetrics.dimensions.y / 2.0f;
+        if (top_border_y_coord - cursorPosition.y >= MIN_PANEL_HEIGHT)
+            newPanelMetrics.dimensions.y = top_border_y_coord - cursorPosition.y;
+        else
+            newPanelMetrics.dimensions.y = MIN_PANEL_HEIGHT;
+        newPanelMetrics.position.y = top_border_y_coord - newPanelMetrics.dimensions.y / 2.0f;
+        return newPanelMetrics;
+    }
+
+    Metrics EventPipeline::GetPanelMetricsForResizingTop(const Metrics& panelMetrics, const glm::vec2& cursorPosition)
+    {
+        Metrics newPanelMetrics = panelMetrics;
+        float bottom_border_y_coord = newPanelMetrics.position.y - newPanelMetrics.dimensions.y / 2.0f;
+        if (cursorPosition.y - bottom_border_y_coord >= MIN_PANEL_HEIGHT)
+            newPanelMetrics.dimensions.y = cursorPosition.y - bottom_border_y_coord;
+        else
+            newPanelMetrics.dimensions.y = MIN_PANEL_HEIGHT;
+        newPanelMetrics.position.y = bottom_border_y_coord + newPanelMetrics.dimensions.y / 2.0f;
+        return newPanelMetrics;
     }
 }

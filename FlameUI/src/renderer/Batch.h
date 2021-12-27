@@ -1,13 +1,38 @@
 #pragma once
 #include <vector>
 #include <array>
-#include "Vertex.h"
-#include "datatypes.h"
+#include "../core/datatypes.h"
+#include "../core/ElementTypeIndex.h"
+#include <glm/glm.hpp>
 
 /// This Macro contains the max number of texture slots that the GPU supports, varies for each computer.
 #define MAX_TEXTURE_SLOTS 16
+#define TITLE_BAR_HEIGHT 15
 
 namespace FlameUI {
+    // The [Vertex] struct represents an OpenGL Vertex.
+    struct Vertex
+    {
+        /// Position from -1.0f to 1.0f on both x-axis and y-axis
+        glm::vec3 position;
+        /// Color in rgba format, each channel ranging from 0.0f to 1.0f
+        glm::vec4 color;
+        /// Texture coordinates ranging from 0.0f to 1.0f
+        glm::vec2 texture_uv;
+        /// Texture index which will be used as opengl texture slot to which the texture will be bound
+        float     texture_index;
+        /// Quad Dimensions which will be used by the shader to customize the quad
+        glm::vec2 quad_dimensions;
+        /// This will tell the shader what kind of UI Element is being rendered
+        float     element_type_index;
+
+        /// Default Constructor
+        Vertex()
+            : position(0.0f), color(1.0f), texture_uv(0.0f), texture_index(-1.0f), quad_dimensions(0.0f), element_type_index(FL_ELEMENT_TYPE_GENERAL_INDEX)
+        {
+        }
+    };
+
     /// The type of quads that will be stored in a batch
     enum class BatchType { BasicQuad = 0, TexturedQuad, Text };
 

@@ -4,24 +4,26 @@
 
 int main()
 {
+    glm::vec4 white{ 1.0f };
+    glm::vec4 yellow{ 1.0f, 1.0f, 0.0f, 1.0f };
+    glm::vec4 purple{ 1.0f, 0.0f, 1.0f, 1.0f };
+    glm::vec4 blue{ 0.0f, 1.0f, 1.0f, 1.0f };
+    glm::vec4 black{ 0.0f, 0.0f, 0.0f, 1.0f };
+    glm::vec4 dark_blue{ 0.0f, 0.0f, 1.0f, 1.0f };
+    glm::vec4 red{ 1.0f, 0.0f, 0.0f, 1.0f };
+    glm::vec4 pink{ 1.0f, 157.0f / 255.0f, 207.0f / 255.0f, 1.0f };
+
     FlameBerry::Window window;
 
-    FlameUI::Renderer::SetUIFont(FL_PROJECT_DIR + std::string("FlameUI/resources/fonts/OpenSans-Regular.ttf"));
-    FlameUI::Renderer::Init(window.GetNativeWindow());
+    FlameUI::ThemeInfo themeInfo{};
+    themeInfo.panelTitleBarColor = { 0.15f, 0.1505f, 0.151f, 1.0f };
 
-    glm::vec4 white(1.0f);
-    glm::vec4 yellow(1.0f, 1.0f, 0.0f, 1.0f);
-    glm::vec4 purple(1.0f, 0.0f, 1.0f, 1.0f);
-    glm::vec4 blue(0.0f, 1.0f, 1.0f, 1.0f);
-    glm::vec4 black(0.0f, 0.0f, 0.0f, 1.0f);
-    glm::vec4 dark_blue(0.0f, 0.0f, 1.0f, 1.0f);
-    glm::vec4 red(1.0f, 0.0f, 0.0f, 1.0f);
+    FlameUI::RendererInitInfo rendererInitInfo{};
+    rendererInitInfo.userWindow = window.GetNativeWindow();
+    rendererInitInfo.enableFontRendering = false;
+    rendererInitInfo.themeInfo = &themeInfo;
 
-    // FlameUI::Renderer::AddText("Welcome to the glorius Flameberry Engine!", { -600, 0 }, 2.0f, yellow);
-
-    GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
-    const char* monitorName = glfwGetMonitorName(primaryMonitor);
-    FL_INFO("Monitor name is '{0}'", monitorName);
+    FlameUI::Renderer::Init(rendererInitInfo);
 
     FlameUI::PanelCreateInfo panel_create_info{};
     panel_create_info.title = "panel";
@@ -57,8 +59,7 @@ int main()
 
     while (window.IsRunning())
     {
-        FL_TIMER_SCOPE("Per_Frame");
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        glClearColor(pink.x, pink.y, pink.z, pink.w);
         glClear(GL_COLOR_BUFFER_BIT);
 
         FlameUI::Renderer::OnUpdate();
@@ -69,6 +70,4 @@ int main()
     }
     FlameUI::Renderer::CleanUp();
     glfwTerminate();
-
-    FL_FLUSH_TIMINGS();
 }

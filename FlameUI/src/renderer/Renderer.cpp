@@ -4,7 +4,7 @@
 #include <sstream>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include "Timer.h"
+#include "../utils/Timer.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image/stb_image.h>
@@ -21,10 +21,8 @@ namespace FlameUI {
     glm::vec2                                     Renderer::s_WindowContentScale;
     float                                         Renderer::s_AspectRatio = (float)(1280.0f / 720.0f);
     std::string                                   Renderer::s_UserFontFilePath = "";
-
-    /// FL_PROJECT_DIR is just a macro defined by cmake, which is the absolute file path of the source dir of the FlameUI project
-    std::string                                   Renderer::s_DefaultFontFilePath = FL_PROJECT_DIR + std::string("FlameUI/resources/fonts/OpenSans-Regular.ttf");
     Renderer::UniformBufferData                   Renderer::s_UniformBufferData;
+    ThemeInfo                                     Renderer::s_ThemeInfo{};
     Renderer::FontProps                           Renderer::s_FontProps = { .Scale = 1.0f, .Strength = 0.5f, .PixelRange = 8.0f };
     glm::vec2                                     Renderer::s_ViewportSize = { 1280.0f, 720.0f };
     glm::vec2                                     Renderer::s_CursorPosition = { 0.0f, 0.0f };
@@ -166,25 +164,37 @@ namespace FlameUI {
         OnResize();
     }
 
-    void Renderer::Init(GLFWwindow* window)
+    void Renderer::Init(const RendererInitInfo& rendererInitInfo)
     {
         FL_LOGGER_INIT();
         FL_INFO("Initialized Logger!");
 
-        s_UserWindow = window;
+        s_UserWindow = rendererInitInfo.userWindow;
+        if (rendererInitInfo.themeInfo)
+            s_ThemeInfo = *rendererInitInfo.themeInfo;
 
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glEnable(GL_DEPTH_TEST);
+        GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
+        const char* monitorName = glfwGetMonitorName(primaryMonitor);
+        FL_INFO("Primary Monitor: {0}", monitorName);
+
+        glm::vec2 scale;
+        glfwGetWindowContentScale(s_UserWindow, &scale.x, &scale.y);
+        s_WindowContentScale = scale;
 
         int width, height;
         glfwGetFramebufferSize(s_UserWindow, &width, &height);
         s_ViewportSize = { (float)width, (float)height };
 
-        if (s_UserFontFilePath == "")
-            s_UserFontFilePath = s_DefaultFontFilePath;
-        LoadFont(s_UserFontFilePath);
-        FL_INFO("Loaded Font from path \"{0}\"", s_UserFontFilePath);
+        if (rendererInitInfo.enableFontRendering)
+        {
+            s_UserFontFilePath = rendererInitInfo.fontFilePath;
+            LoadFont(s_UserFontFilePath);
+            FL_INFO("Loaded Font from path \"{0}\"", s_UserFontFilePath);
+        }
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glEnable(GL_DEPTH_TEST);
 
         /* Create Uniform Buffer */
         glGenBuffers(1, &s_UniformBufferId);
@@ -202,7 +212,8 @@ namespace FlameUI {
         const glm::vec2& position_in_pixels,
         const glm::vec2& dimensions_in_pixels,
         const glm::vec4& color,
-        float z
+        float z,
+        float elementTypeIndex
     )
     {
         glm::vec2 position = ConvertPixelsToOpenGLValues(position_in_pixels);
@@ -232,8 +243,10 @@ namespace FlameUI {
         {
             vertex.position.x *= s_WindowContentScale.x;
             vertex.position.y *= s_WindowContentScale.y;
+            vertex.quad_dimensions = dimensions;
             vertex.color = color;
             vertex.texture_index = -1.0f;
+            vertex.element_type_index = elementTypeIndex;
         }
 
         (*vertices)[0].texture_uv = { 0.0f, 0.0f };
@@ -245,15 +258,15 @@ namespace FlameUI {
     void Renderer::AddQuad(const QuadCreateInfo& quadCreateInfo)
     {
         if (quadCreateInfo.textureFilePath == NULL)
-            AddBasicQuad(quadCreateInfo.quadId, quadCreateInfo.positionType, *quadCreateInfo.position, *quadCreateInfo.dimensions, *quadCreateInfo.color, quadCreateInfo.zIndex);
+            AddBasicQuad(quadCreateInfo);
         else
-            AddTexturedQuad(quadCreateInfo.quadId, quadCreateInfo.positionType, *quadCreateInfo.position, *quadCreateInfo.dimensions, *quadCreateInfo.color, quadCreateInfo.textureFilePath);
+            AddTexturedQuad(quadCreateInfo);
     }
 
-    void Renderer::AddBasicQuad(uint32_t* quadId, const QuadPosType& positionType, const glm::vec2& position_in_pixels, const glm::vec2& dimensions_in_pixels, const glm::vec4& color, float z)
+    void Renderer::AddBasicQuad(const QuadCreateInfo& quadCreateInfo)
     {
         std::array<Vertex, 4> vertices;
-        GetQuadVertices(&vertices, positionType, position_in_pixels, dimensions_in_pixels, color, z);
+        GetQuadVertices(&vertices, quadCreateInfo.positionType, *quadCreateInfo.position, *quadCreateInfo.dimensions, *quadCreateInfo.color, quadCreateInfo.zIndex, quadCreateInfo.elementTypeIndex);
 
         static bool first_time = true;
         static uint32_t batch_index = 0;
@@ -266,18 +279,17 @@ namespace FlameUI {
         }
 
         uint32_t quad_id = GenQuadId();
-        if (quadId)
-            *quadId = quad_id;
+        if (quadCreateInfo.quadId)
+            *quadCreateInfo.quadId = quad_id;
 
         s_QuadDictionary[quad_id][0] = batch_index;
         s_Batches[batch_index]->AddQuad(vertices, &s_QuadDictionary[quad_id][1]);
     }
 
-    void Renderer::AddTexturedQuad(uint32_t* quadId, const QuadPosType& positionType, const glm::vec2& position_in_pixels,
-        const glm::vec2& dimensions_in_pixels, const glm::vec4& color, const std::string& textureFilePath)
+    void Renderer::AddTexturedQuad(const QuadCreateInfo& quadCreateInfo)
     {
         std::array<Vertex, 4> vertices;
-        GetQuadVertices(&vertices, positionType, position_in_pixels, dimensions_in_pixels, color);
+        GetQuadVertices(&vertices, quadCreateInfo.positionType, *quadCreateInfo.position, *quadCreateInfo.dimensions, *quadCreateInfo.color, quadCreateInfo.zIndex, quadCreateInfo.elementTypeIndex);
 
         static uint16_t slot = 0;
         for (uint8_t i = 0; i < 4; i++)
@@ -293,26 +305,26 @@ namespace FlameUI {
             s_Batches.back()->Init();
 
             quad_id = GenQuadId();
-            if (quadId)
-                *quadId = quad_id;
+            if (quadCreateInfo.quadId)
+                *quadCreateInfo.quadId = quad_id;
             s_QuadDictionary[quad_id][0] = s_Batches.size() - 1;
             s_QuadDictionary[quad_id][1] = 0;
 
             s_Batches.back()->AddQuad(vertices, nullptr);
-            LoadTexture(&quad_id, textureFilePath);
+            LoadTexture(&quad_id, quadCreateInfo.textureFilePath);
         }
         else if ((quad_id) && (!s_Batches[s_QuadDictionary[quad_id][0]]->IsFull()))
         {
             uint32_t previous_quad_id = quad_id;
 
             quad_id = GenQuadId();
-            if (quadId)
-                *quadId = quad_id;
+            if (quadCreateInfo.quadId)
+                *quadCreateInfo.quadId = quad_id;
 
             s_QuadDictionary[quad_id][0] = s_QuadDictionary[previous_quad_id][0];
             s_Batches[s_QuadDictionary[quad_id][0]]->AddQuad(vertices, &s_QuadDictionary[quad_id][1]);
 
-            LoadTexture(&quad_id, textureFilePath);
+            LoadTexture(&quad_id, quadCreateInfo.textureFilePath);
         }
     }
 
@@ -590,7 +602,7 @@ namespace FlameUI {
     void Renderer::ChangeQuadVertices(const QuadCreateInfo& quadCreateInfo)
     {
         std::array<Vertex, 4> vertices;
-        GetQuadVertices(&vertices, quadCreateInfo.positionType, *quadCreateInfo.position, *quadCreateInfo.dimensions, *quadCreateInfo.color, quadCreateInfo.zIndex);
+        GetQuadVertices(&vertices, quadCreateInfo.positionType, *quadCreateInfo.position, *quadCreateInfo.dimensions, *quadCreateInfo.color, quadCreateInfo.zIndex, quadCreateInfo.elementTypeIndex);
         s_Batches[s_QuadDictionary[*quadCreateInfo.quadId][0]]->SetQuadVertices(s_QuadDictionary[*quadCreateInfo.quadId][1], vertices);
     }
 

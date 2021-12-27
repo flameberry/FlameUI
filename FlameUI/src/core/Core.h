@@ -11,7 +11,7 @@
 #endif
 
 #ifdef FL_DEBUG
-#include "Log.h"
+#include "../utils/Log.h"
 
 namespace flDebug {
     template<typename T, typename... Args>

@@ -1,5 +1,4 @@
 #include "Batch.h"
-#include "Core.h"
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -60,10 +59,7 @@ namespace FlameUI {
     }
 
     BatchType BasicQuadBatch::GetBatchType() const { return BatchType::BasicQuad; }
-
-    void BasicQuadBatch::AddTextureId(uint32_t textureId)
-    {
-    }
+    void BasicQuadBatch::AddTextureId(uint32_t textureId) {}
 
     std::array<Vertex*, 4> BasicQuadBatch::GetPtrToQuadVertices(uint32_t location)
     {
@@ -131,13 +127,17 @@ namespace FlameUI {
         GL_CHECK_ERROR(glBindVertexArray(m_VertexArrayId));
 
         GL_CHECK_ERROR(glEnableVertexAttribArray(0));
-        GL_CHECK_ERROR(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 10 * sizeof(float), (void*)offsetof(Vertex, position)));
+        GL_CHECK_ERROR(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 13 * sizeof(float), (void*)offsetof(Vertex, position)));
         GL_CHECK_ERROR(glEnableVertexAttribArray(1));
-        GL_CHECK_ERROR(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 10 * sizeof(float), (void*)offsetof(Vertex, color)));
+        GL_CHECK_ERROR(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 13 * sizeof(float), (void*)offsetof(Vertex, color)));
         GL_CHECK_ERROR(glEnableVertexAttribArray(2));
-        GL_CHECK_ERROR(glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 10 * sizeof(float), (void*)offsetof(Vertex, texture_uv)));
+        GL_CHECK_ERROR(glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 13 * sizeof(float), (void*)offsetof(Vertex, texture_uv)));
         GL_CHECK_ERROR(glEnableVertexAttribArray(3));
-        GL_CHECK_ERROR(glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, 10 * sizeof(float), (void*)offsetof(Vertex, texture_index)));
+        GL_CHECK_ERROR(glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, 13 * sizeof(float), (void*)offsetof(Vertex, texture_index)));
+        GL_CHECK_ERROR(glEnableVertexAttribArray(4));
+        GL_CHECK_ERROR(glVertexAttribPointer(4, 2, GL_FLOAT, GL_FALSE, 13 * sizeof(float), (void*)offsetof(Vertex, quad_dimensions)));
+        GL_CHECK_ERROR(glEnableVertexAttribArray(5));
+        GL_CHECK_ERROR(glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, 13 * sizeof(float), (void*)offsetof(Vertex, element_type_index)));
 
         GL_CHECK_ERROR(glGenBuffers(1, &m_IndexBufferId));
         GL_CHECK_ERROR(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IndexBufferId));
@@ -239,6 +239,11 @@ namespace FlameUI {
         // Always detach shaders after a successful link.
         glDetachShader(m_ShaderProgramId, vertex_shader);
         glDetachShader(m_ShaderProgramId, fragment_shader);
+
+        glm::vec4 panelTitleBarColor = Renderer::GetThemeInfo().panelTitleBarColor;
+        glUseProgram(m_ShaderProgramId);
+        glUniform4f(Renderer::GetUniformLocation("u_PanelTitleBarColor", m_ShaderProgramId), panelTitleBarColor.x, panelTitleBarColor.y, panelTitleBarColor.z, panelTitleBarColor.w);
+        glUseProgram(0);
     }
 
     void BasicQuadBatch::OnDraw()
@@ -249,6 +254,8 @@ namespace FlameUI {
             GL_CHECK_ERROR(glBufferSubData(GL_ARRAY_BUFFER, 0, m_Vertices.size() * sizeof(Vertex), m_Vertices.data()));
 
             GL_CHECK_ERROR(glUseProgram(m_ShaderProgramId));
+            glUniform1f(Renderer::GetUniformLocation("u_TitleBarHeight", m_ShaderProgramId), Renderer::ConvertYAxisPixelValueToOpenGLValue(TITLE_BAR_HEIGHT));
+
             GL_CHECK_ERROR(glBindVertexArray(m_VertexArrayId));
             GL_CHECK_ERROR(glDrawElements(GL_TRIANGLES, s_Max_Indices, GL_UNSIGNED_INT, 0));
         }

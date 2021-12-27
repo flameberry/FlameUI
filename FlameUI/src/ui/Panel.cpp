@@ -1,6 +1,6 @@
 #include "Panel.h"
-#include "Core.h"
-#include "Timer.h"
+#include "../core/Core.h"
+#include "../utils/Timer.h"
 
 namespace FlameUI {
     Panel::Panel(const PanelCreateInfo& panelCreateInfo)
@@ -27,6 +27,8 @@ namespace FlameUI {
         quad_create_info.position = &m_Position;
         quad_create_info.dimensions = &m_Dimensions;
         quad_create_info.color = &m_Color;
+        quad_create_info.elementTypeIndex = FL_ELEMENT_TYPE_PANEL_INDEX;
+        quad_create_info.zIndex = m_ZIndex;
 
         Renderer::AddQuad(quad_create_info);
     }
@@ -94,6 +96,7 @@ namespace FlameUI {
         quad_create_info.dimensions = &m_Dimensions;
         quad_create_info.color = &m_Color;
         quad_create_info.zIndex = m_ZIndex;
+        quad_create_info.elementTypeIndex = FL_ELEMENT_TYPE_PANEL_INDEX;
         Renderer::ChangeQuadVertices(quad_create_info);
     }
 

@@ -1,10 +1,9 @@
 #pragma once
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
-#include "Renderer.h"
-#include "Panel.h"
+#include "renderer/Renderer.h"
+#include "ui/Panel.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include "Timer.h"
-#include "Core.h"
-#include "EventPipeline.h"
+#include "utils/Timer.h"
+#include "ui/EventPipeline.h"

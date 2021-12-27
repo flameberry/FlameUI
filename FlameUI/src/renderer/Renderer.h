@@ -4,7 +4,7 @@
 #include <string>
 #include <glad/glad.h>
 #include <unordered_map>
-#include "Core.h"
+#include "../core/Core.h"
 #include <GLFW/glfw3.h>
 #include "Batch.h"
 
@@ -49,15 +49,33 @@ namespace FlameUI {
         const char* textureFilePath;
         // The Z Index of the Quad
         float zIndex;
+        // The element type to be rendered
+        float elementTypeIndex;
+    };
+
+    struct ThemeInfo
+    {
+        // glm::vec4 panelBgColor;
+        glm::vec4 panelTitleBarColor{ 50.0f / 255.0f, 50.0f / 255.0f, 50.0f / 255.0f, 1.0f };
+    };
+
+    struct RendererInitInfo
+    {
+        GLFWwindow* userWindow;
+        bool enableFontRendering{ true };
+        std::string fontFilePath{ FL_PROJECT_DIR"FlameUI/resources/fonts/OpenSans-Regular.ttf" };
+        ThemeInfo* themeInfo;
     };
 
     class Renderer
     {
     public:
         // The Init function should be called after the GLFW window creation and before the main loop
-        static void        Init(GLFWwindow* window);
+        static void        Init(const RendererInitInfo& rendererInitInfo);
         static void        OnResize();
         static bool        DoesQuadExist(uint32_t* quadId);
+        static ThemeInfo   GetThemeInfo() { return s_ThemeInfo; }
+        static glm::vec2   GetWindowContentScale() { return s_WindowContentScale; }
         static GLFWwindow* GetUserGLFWwindow();
         static glm::vec2   GetViewportSize();
         static glm::vec2   GetTextDimensions(const std::string& text, float scale);
@@ -68,7 +86,6 @@ namespace FlameUI {
         static glm::vec2   ConvertOpenGLValuesToPixels(const glm::vec2& opengl_coords);
         static float       ConvertXAxisPixelValueToOpenGLValue(int X);
         static float       ConvertYAxisPixelValueToOpenGLValue(int Y);
-        inline static void SetUIFont(const std::string& filePath) { s_UserFontFilePath = filePath; }
         static void        SetQuadZIndex(uint32_t* quadId, float z);
         static void        SetQuadPosition(uint32_t* quadId, const glm::vec2& position_in_pixels);
         static void        SetQuadDimensions(uint32_t* quadId, const glm::vec2& dimensions_in_pixels);
@@ -93,10 +110,10 @@ namespace FlameUI {
         /// Private Functions which will be used by the Renderer as Utilites
         static uint32_t    GenQuadId();
         static void        LoadFont(const std::string& filePath);
-        static void        GetQuadVertices(std::array<Vertex, 4>* vertices, const QuadPosType& positionType, const glm::vec2& position_in_pixels, const glm::vec2& dimensions_in_pixels, const glm::vec4& color, float z = 0.0f);
+        static void        GetQuadVertices(std::array<Vertex, 4>* vertices, const QuadPosType& positionType, const glm::vec2& position_in_pixels, const glm::vec2& dimensions_in_pixels, const glm::vec4& color, float z, float elementTypeIndex);
         static void        LoadTexture(uint32_t* quadId, const std::string& filePath);
-        static void        AddBasicQuad(uint32_t* quadId, const QuadPosType& positionType, const glm::vec2& position_in_pixels, const glm::vec2& dimensions_in_pixels, const glm::vec4& color, float z = 0.0f);
-        static void        AddTexturedQuad(uint32_t* quadId, const QuadPosType& positionType, const glm::vec2& position_in_pixels, const glm::vec2& dimensions_in_pixels, const glm::vec4& color, const std::string& textureFilePath);
+        static void        AddBasicQuad(const QuadCreateInfo& quadCreateInfo);
+        static void        AddTexturedQuad(const QuadCreateInfo& quadCreateInfo);
         static void        AddQuadToTextBatch(uint32_t* quadId, const std::array<FlameUI::Vertex, 4>& vertices, uint32_t textureId);
     private:
         /// Struct that contains all the matrices needed by the shader, which will be stored in a Uniform Buffer
@@ -129,8 +146,10 @@ namespace FlameUI {
         static FontProps                                 s_FontProps;
         /// Stores all matrices needed by the shader, also stored in a Uniform Buffer
         static UniformBufferData                         s_UniformBufferData;
+        /// Stores all the colors of the UI
+        static ThemeInfo                                 s_ThemeInfo;
         /// Stores file path of the font provided by user and the default font file path
-        static std::string                               s_UserFontFilePath, s_DefaultFontFilePath;
+        static std::string                               s_UserFontFilePath;
         /// The main vector of all the batches of quads to ever exist in the program
         static std::vector<std::shared_ptr<Batch>>       s_Batches;
         /// Stores all the characters and their properties, which are extracted from the font provided by the user
