@@ -159,36 +159,14 @@ namespace FlameUI {
 
         new_panel_position.x = m_Bounds.Left + new_panel_dimensions.x / 2.0f;
 
-        if (m_IsTopOccupied)
-        {
-            // glm::vec2 top_panel_position = m_TopPanel->GetPosition();
-            // glm::vec2 top_panel_dimensions = m_TopPanel->GetDimensions();
-            // if (top_panel_position.x - top_panel_dimensions.x / 2.0f == m_Bounds.Left)
-            // {
-            //     float panel_bottom_border_y_coord = new_panel_position.y - new_panel_dimensions.y / 2.0f;
-            //     new_panel_dimensions.y = m_Bounds.Top - panel_bottom_border_y_coord - top_panel_dimensions.y;
-            //     new_panel_position.y = panel_bottom_border_y_coord + new_panel_dimensions.y / 2.0f;
-            // }
-        }
-        else
+        if (!m_IsTopOccupied)
         {
             float panel_bottom_border_y_coord = new_panel_position.y - new_panel_dimensions.y / 2.0f;
             new_panel_dimensions.y = m_Bounds.Top - panel_bottom_border_y_coord;
             new_panel_position.y = panel_bottom_border_y_coord + new_panel_dimensions.y / 2.0f;
         }
 
-        if (m_IsBottomOccupied)
-        {
-            // glm::vec2 bottom_panel_position = m_BottomPanel->GetPosition();
-            // glm::vec2 bottom_panel_dimensions = m_BottomPanel->GetDimensions();
-            // if (bottom_panel_position.x - bottom_panel_dimensions.x / 2.0f == m_Bounds.Left)
-            // {
-            //     float panel_top_border_y_coord = new_panel_position.y + new_panel_dimensions.y / 2.0f;
-            //     new_panel_dimensions.y = panel_top_border_y_coord - m_Bounds.Bottom - bottom_panel_dimensions.y;
-            //     new_panel_position.y = panel_top_border_y_coord - new_panel_dimensions.y / 2.0f;
-            // }
-        }
-        else
+        if (!m_IsBottomOccupied)
         {
             float panel_top_border_y_coord = new_panel_position.y + new_panel_dimensions.y / 2.0f;
             new_panel_dimensions.y = panel_top_border_y_coord - m_Bounds.Bottom;

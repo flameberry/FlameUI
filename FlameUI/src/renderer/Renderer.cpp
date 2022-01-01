@@ -15,7 +15,7 @@
 namespace FlameUI {
     std::unordered_map<uint32_t, uint32_t[2]>     Renderer::s_QuadDictionary;
     std::unordered_map<std::string, GLint>        Renderer::m_UniformLocationCache;
-    std::unordered_map<char, Renderer::Character> Renderer::s_Characters;
+    std::unordered_map<char, flame::character>    Renderer::s_Characters;
     std::vector<std::shared_ptr<Batch>>           Renderer::s_Batches;
     uint32_t                                      Renderer::s_UniformBufferId;
     glm::vec2                                     Renderer::s_WindowContentScale;
@@ -413,13 +413,13 @@ namespace FlameUI {
 
         for (std::string::const_iterator it = text.begin(); it != text.end(); it++)
         {
-            Character character = s_Characters[*it];
+            flame::character character = s_Characters[*it];
 
-            float xpos = position.x + character.Bearing.x * scale;
-            float ypos = position.y - (character.Size.y - character.Bearing.y) * scale - s_FontProps.DescenderY * scale;
+            float xpos = position.x + character.bearing.x * scale;
+            float ypos = position.y - (character.size.y - character.bearing.y) * scale - s_FontProps.DescenderY * scale;
 
-            float w = character.Size.x * scale;
-            float h = character.Size.y * scale;
+            float w = character.size.x * scale;
+            float h = character.size.y * scale;
 
             std::array<FlameUI::Vertex, 4> vertices;
             vertices[0].position = { xpos,     ypos,     0.0f };
@@ -448,8 +448,8 @@ namespace FlameUI {
             for (uint8_t i = 0; i < 4; i++)
                 vertices[i].color = color;
 
-            AddQuadToTextBatch(nullptr, vertices, character.TextureId);
-            position.x += (character.Advance) * scale + 1.0f;
+            AddQuadToTextBatch(nullptr, vertices, character.textureId);
+            position.x += (character.advance) * scale + 1.0f;
         }
     }
 
@@ -508,7 +508,7 @@ namespace FlameUI {
 
             GL_CHECK_ERROR(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, msdf.width(), msdf.height(), 0, GL_RGB, GL_FLOAT, msdf.operator float* ()));
 
-            Character ch = {
+            flame::character ch = {
                 textureId,
                 { msdf.width(), msdf.height() },
                 { shape.getBounds().l, shape.getBounds().t },
@@ -528,11 +528,11 @@ namespace FlameUI {
         float highestPositionOfChar = 0;
         for (std::string::const_iterator it = text.begin(); it != text.end(); it++)
         {
-            textDimensions.x += s_Characters[*it].Size.x * scale;
-            if (lowestPositionOfChar > -(s_Characters[*it].Size.y - s_Characters[*it].Bearing.y) * scale)
-                lowestPositionOfChar = -(s_Characters[*it].Size.y - s_Characters[*it].Bearing.y) * scale;
-            if (highestPositionOfChar < -(s_Characters[*it].Size.y - s_Characters[*it].Bearing.y) * scale + s_Characters[*it].Size.y * scale)
-                highestPositionOfChar = -(s_Characters[*it].Size.y - s_Characters[*it].Bearing.y) * scale + s_Characters[*it].Size.y * scale;
+            textDimensions.x += s_Characters[*it].size.x * scale;
+            if (lowestPositionOfChar > -(s_Characters[*it].size.y - s_Characters[*it].bearing.y) * scale)
+                lowestPositionOfChar = -(s_Characters[*it].size.y - s_Characters[*it].bearing.y) * scale;
+            if (highestPositionOfChar < -(s_Characters[*it].size.y - s_Characters[*it].bearing.y) * scale + s_Characters[*it].size.y * scale)
+                highestPositionOfChar = -(s_Characters[*it].size.y - s_Characters[*it].bearing.y) * scale + s_Characters[*it].size.y * scale;
         }
         textDimensions.y = highestPositionOfChar - lowestPositionOfChar;
 

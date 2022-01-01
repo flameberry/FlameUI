@@ -7,6 +7,7 @@
 #include "../core/Core.h"
 #include <GLFW/glfw3.h>
 #include "Batch.h"
+#include "../ui/Text.h"
 
 namespace FlameUI {
     /// Class which deals with OpenGL Framebuffer
@@ -102,6 +103,11 @@ namespace FlameUI {
 
         /// Functions For Debug Purposes
         static void        PrintQuadDictionary();
+        static float       PrintTextWidth()
+        {
+            TextHelper textHelper("Flameberry Engine", s_Characters, 1.0f);
+            return textHelper.GetTextWidth();
+        }
 
         static glm::vec2& GetCursorPosition();
         static std::array<Vertex*, 4>               GetPtrToQuadVertices(uint32_t* quadId);
@@ -118,13 +124,6 @@ namespace FlameUI {
     private:
         /// Struct that contains all the matrices needed by the shader, which will be stored in a Uniform Buffer
         struct UniformBufferData { glm::mat4 ProjectionMatrix; };
-        struct Character
-        {
-            uint32_t   TextureId;  // ID handle of the glyph texture
-            glm::vec2  Size;       // Size of glyph
-            glm::vec2  Bearing;    // Offset from baseline to left/top of glyph
-            double     Advance;    // Offset to advance to next glyph
-        };
         struct FontProps
         {
             float Scale;
@@ -153,7 +152,7 @@ namespace FlameUI {
         /// The main vector of all the batches of quads to ever exist in the program
         static std::vector<std::shared_ptr<Batch>>       s_Batches;
         /// Stores all the characters and their properties, which are extracted from the font provided by the user
-        static std::unordered_map<char, Character>       s_Characters;
+        static std::unordered_map<char, flame::character>       s_Characters;
         /// Stores the size of the vieport that FlameUI is being drawn on
         static glm::vec2                                 s_ViewportSize;
         /// Stores the cursor position per frame on the User Window

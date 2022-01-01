@@ -23,9 +23,17 @@
 #define FL_COLOR_RED "\e[0;31m"
 #define FL_COLOR_GREEN "\e[0;32m"
 #define FL_COLOR_YELLOW "\e[0;33m"
-#define FL_COLOR_PURPLE "\e[0;35m"
 #define FL_COLOR_CYAN "\e[0;36m"
+#define FL_COLOR_PURPLE "\e[0;35m"
 #define FL_COLOR_WHITE "\e[0;37m"
+
+// #define FL_COLOR_DEFAULT "\033[0m"
+// #define FL_COLOR_RED "\033[31m"
+// #define FL_COLOR_GREEN "\033[32m"
+// #define FL_COLOR_YELLOW "\033[33m"
+// #define FL_COLOR_PURPLE "\033[35m"
+// #define FL_COLOR_CYAN "\033[36m"
+// #define FL_COLOR_WHITE "\033[37m"
 #endif
 
 namespace flamelogger {
