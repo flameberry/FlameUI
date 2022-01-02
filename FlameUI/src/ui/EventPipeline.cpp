@@ -19,9 +19,9 @@ namespace FlameUI {
             return;
         }
         glm::vec2 viewportSize = Renderer::GetViewportSize();
-        const float left = -viewportSize.x / 2.0f / Renderer::GetWindowContentScale().x;
+        const float left = -viewportSize.x / Renderer::GetWindowContentScale().x / 2.0f;
         const float right = -left;
-        const float bottom = -viewportSize.y / 2.0f / Renderer::GetWindowContentScale().y;
+        const float bottom = -viewportSize.y / Renderer::GetWindowContentScale().y / 2.0f;
         const float top = -bottom;
         s_Panels = panels;
         s_DepthValues.resize(s_Panels.size());
@@ -46,9 +46,9 @@ namespace FlameUI {
         // Get all variables which will be needed for all the event handling
         GLFWwindow* window = Renderer::GetUserGLFWwindow();
         glm::vec2 viewportSize = Renderer::GetViewportSize();
-        const float left = -viewportSize.x / 2.0f / Renderer::GetWindowContentScale().x;
+        const float left = -viewportSize.x / Renderer::GetWindowContentScale().x / 2.0f;
         const float right = -left;
-        const float bottom = -viewportSize.y / 2.0f / Renderer::GetWindowContentScale().y;
+        const float bottom = -viewportSize.y / Renderer::GetWindowContentScale().y / 2.0f;
         const float top = -bottom;
         glm::vec2 cursor_pos = Renderer::GetCursorPosition();
 
@@ -417,7 +417,7 @@ namespace FlameUI {
 
         // Stage 3: Submiting the final position and dimensions of all panels to the Renderer to draw
         for (auto& panel : s_Panels)
-            panel.InvalidateRenderData();
+            panel.OnDraw();
     }
 
     void EventPipeline::InvalidateFocus()

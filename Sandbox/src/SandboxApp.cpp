@@ -25,46 +25,23 @@ int main()
 
     FlameUI::Renderer::Init(rendererInitInfo);
 
-    FlameUI::PanelCreateInfo panel_create_info{};
-    panel_create_info.title = "panel";
-    panel_create_info.position = { 0, 0 };
-    panel_create_info.dimensions = { 200, 550 };
-    panel_create_info.color = white;
+    FlameUI::PanelCreateInfo panelCreateInfo{};
+    panelCreateInfo.position = { 0.0f, 0.0f };
+    panelCreateInfo.dimensions = { 200.0f, 550.0f };
+    panelCreateInfo.color = purple;
 
-    FlameUI::PanelCreateInfo panel_one_create_info{};
-    panel_one_create_info.title = "panelOne";
-    panel_one_create_info.position = { 0, 0 };
-    panel_one_create_info.dimensions = { 250, 450 };
-    panel_one_create_info.color = yellow;
+    FlameUI::Panel panel(panelCreateInfo);
 
-    FlameUI::PanelCreateInfo panel_two_create_info{};
-    panel_two_create_info.title = "panelTwo";
-    panel_two_create_info.position = { 0, 0 };
-    panel_two_create_info.dimensions = { 300, 600 };
-    panel_two_create_info.color = purple;
-
-    FlameUI::PanelCreateInfo panel_three_create_info{};
-    panel_three_create_info.title = "panelThree";
-    panel_three_create_info.position = { 0, 0 };
-    panel_three_create_info.dimensions = { 100, 400 };
-    panel_three_create_info.color = blue;
-
-    FlameUI::Panel panel(panel_create_info);
-    FlameUI::Panel panelOne(panel_one_create_info);
-    FlameUI::Panel panelTwo(panel_two_create_info);
-    FlameUI::Panel panelThree(panel_three_create_info);
-
-    std::vector<FlameUI::Panel> panels = { panel, panelOne, panelTwo, panelThree };
-    FlameUI::EventPipeline::Prepare(panels);
+    FlameUI::EventPipeline::Prepare({ panel });
 
     while (window.IsRunning())
     {
         glClearColor(pink.x, pink.y, pink.z, pink.w);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        FlameUI::Renderer::OnUpdate();
+        FlameUI::Renderer::Begin();
         FlameUI::EventPipeline::Execute();
-        FlameUI::Renderer::OnDraw();
+        FlameUI::Renderer::End();
 
         window.OnUpdate();
     }

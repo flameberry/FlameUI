@@ -40,7 +40,7 @@ namespace FlameUI {
         Panel(const PanelCreateInfo& panelCreateInfo);
         ~Panel() = default;
 
-        // void                AddButton(const std::string& title, const glm::vec2& dimensions_in_pixels, const glm::vec4& color, const std::string& textureFilePath);
+        void                OnDraw();
         bool                IsFocused() const { return m_IsFocused; }
         void                SetGrabState(const GrabState& grabState) { m_GrabState = grabState; }
         void                SetResizeState(const ResizeState& resizeState) { m_ResizeState = resizeState; }
@@ -69,8 +69,6 @@ namespace FlameUI {
         void                SetDimensions(const glm::vec2& dimensions) { m_Dimensions = dimensions; }
         // Recalculates the bounds of the panel using the 'm_Position' and 'm_Dimensions' variables
         void                InvalidateBounds();
-        // Recalculates the panel vertices in the batches stored by the Renderer
-        void                InvalidateRenderData();
         // Stores the offset of the cursor from the center of the panel when the panel is grabbed to bring continuity in grabbing
         void                StoreOffsetOfCursorFromCenter(const glm::vec2& offset) { m_OffsetOfCursorWhenGrabbed = offset; }
         // Gets the offset stored by the 'StoreOffsetOfCursorFromCenter' function

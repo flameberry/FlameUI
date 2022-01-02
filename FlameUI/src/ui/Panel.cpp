@@ -19,57 +19,7 @@ namespace FlameUI {
     {
         // Set the bounds for initialize the panel
         InvalidateBounds();
-
-        // Create the main panel
-        QuadCreateInfo quad_create_info{};
-        quad_create_info.quadId = &m_PanelQuadId;
-        quad_create_info.positionType = FL_QUAD_POS_CENTER;
-        quad_create_info.position = &m_Position;
-        quad_create_info.dimensions = &m_Dimensions;
-        quad_create_info.color = &m_Color;
-        quad_create_info.elementTypeIndex = FL_ELEMENT_TYPE_PANEL_INDEX;
-        quad_create_info.zIndex = m_ZIndex;
-
-        Renderer::AddQuad(quad_create_info);
     }
-
-    // void Panel::AddButton(const std::string& title, const glm::vec2& dimensions_in_pixels,
-    //     const glm::vec4& color, const std::string& textureFilePath)
-    // {
-    //     static int top_element_position = m_Position.y + ((int)m_Dimensions.y / 2);
-    //     static int bottom_element_position = m_Position.y - ((int)m_Dimensions.y / 2);
-    //     if (top_element_position - bottom_element_position - 2 * m_InnerPadding.y > 0)
-    //     {
-    //         glm::vec2 dimensions = dimensions_in_pixels;
-
-    //         uint32_t quad_id;
-    //         bool is_too_big_X = dimensions_in_pixels.x + (2 * m_InnerPadding.x) > m_Dimensions.x;
-    //         bool is_too_big_Y = dimensions_in_pixels.y > top_element_position - bottom_element_position - 2 * m_InnerPadding.y;
-
-    //         if ((is_too_big_X) && (!is_too_big_Y))
-    //             dimensions.x = m_Dimensions.x - 2 * m_InnerPadding.x;
-    //         else if ((!is_too_big_X) && (is_too_big_Y))
-    //             dimensions.y = top_element_position - bottom_element_position - 2 * m_InnerPadding.y;
-    //         else if (is_too_big_X && is_too_big_Y)
-    //         {
-    //             dimensions.x = m_Dimensions.x - 2 * m_InnerPadding.x;
-    //             dimensions.y = top_element_position - bottom_element_position - 2 * m_InnerPadding.y;
-    //         }
-
-    //         glm::vec2 position = {
-    //             m_Position.x - ((int)m_Dimensions.x / 2) + m_InnerPadding.x,
-    //             top_element_position - m_InnerPadding.y - (int)dimensions.y
-    //         };
-
-    //         m_Buttons.push_back(Button::Create(title, m_Position, FL_QUAD_POS_BOTTOM_LEFT_VERTEX, position, dimensions, color, textureFilePath));
-
-    //         top_element_position = top_element_position - m_InnerPadding.y - dimensions.y;
-    //     }
-    //     else
-    //     {
-    //         FL_LOG("Panel is full!");
-    //     }
-    // }
 
     bool Panel::IsHoveredOnPanel()
     {
@@ -87,23 +37,14 @@ namespace FlameUI {
         m_Bounds.Top = m_Position.y + m_Dimensions.y / 2.0f;
     }
 
-    void Panel::InvalidateRenderData()
+    void Panel::OnDraw()
     {
-        QuadCreateInfo quad_create_info{};
-        quad_create_info.quadId = &m_PanelQuadId;
-        quad_create_info.positionType = FL_QUAD_POS_CENTER;
-        quad_create_info.position = &m_Position;
-        quad_create_info.dimensions = &m_Dimensions;
-        quad_create_info.color = &m_Color;
-        quad_create_info.zIndex = m_ZIndex;
-        quad_create_info.elementTypeIndex = FL_ELEMENT_TYPE_PANEL_INDEX;
-        Renderer::ChangeQuadVertices(quad_create_info);
+        Renderer::AddQuad({ m_Position, m_ZIndex }, m_Dimensions, m_Color, FL_ELEMENT_TYPE_PANEL_INDEX);
     }
 
     void Panel::SetZIndex(float z)
     {
         m_ZIndex = z;
-        Renderer::SetQuadZIndex(&m_PanelQuadId, m_ZIndex);
     }
 
     void Panel::SetFocus(bool value) { m_IsFocused = value; }
