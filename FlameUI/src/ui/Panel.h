@@ -57,14 +57,14 @@ namespace FlameUI {
         bool                IsHoveredOnPanel();
         void                SetFocus(bool value);
         void                SetZIndex(float z);
-        float               GetZIndex() const { return m_ZIndex; }
+        float               GetZIndex() const { return m_Position.z; }
         std::string         GetPanelName() const { return m_PanelName; }
         uint32_t            GetPanelQuadId() const { return m_PanelQuadId; }
         Bounds              GetBounds() const { return m_Bounds; }
         float               GetWidth() const { return m_Dimensions.x; }
         float               GetHeight() const { return m_Dimensions.y; }
         glm::vec2           GetPosition() const { return m_Position; }
-        void                SetPosition(const glm::vec2& position) { m_Position = position; }
+        void                SetPosition(const glm::vec2& position) { m_Position.x = position.x; m_Position.y = position.y; }
         glm::vec2           GetDimensions() const { return m_Dimensions; }
         void                SetDimensions(const glm::vec2& dimensions) { m_Dimensions = dimensions; }
         // Recalculates the bounds of the panel using the 'm_Position' and 'm_Dimensions' variables
@@ -79,7 +79,7 @@ namespace FlameUI {
         // Stores the unique QuadId provided by the Renderer to every Quad
         uint32_t                             m_PanelQuadId;
         // Important: m_Position is the position of the center of the panel
-        glm::vec2                            m_Position;
+        glm::vec3                            m_Position;
         // Stores the dimensions of the panel in pixel units
         glm::vec2                            m_Dimensions;
         // Stores the coordinates of the boundaries of the panel
@@ -88,8 +88,6 @@ namespace FlameUI {
         glm::vec2                            m_InnerPadding;
         // Stores the background color of the panel
         glm::vec4                            m_Color;
-        // Stores the Z Index of the panel, which is set in the Event Pipeline
-        float                                m_ZIndex;
         // Stores the title which will be displayed in the title bar of the panel
         std::string                          m_PanelName;
         bool                                 m_IsFocused = false;

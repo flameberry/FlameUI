@@ -5,11 +5,10 @@
 namespace FlameUI {
     Panel::Panel(const PanelCreateInfo& panelCreateInfo)
         : m_PanelName(panelCreateInfo.title),
-        m_Position(panelCreateInfo.position),
+        m_Position({ panelCreateInfo.position.x, panelCreateInfo.position.y, 0.0f }),
         m_Dimensions(panelCreateInfo.dimensions),
         m_InnerPadding(15, 10),
         m_Color(panelCreateInfo.color),
-        m_ZIndex(0.0f),
         m_OffsetOfCursorWhenGrabbed(0.0f),
         m_GrabState(GrabState::NotGrabbed),
         m_ResizeState(ResizeState::None),
@@ -39,12 +38,12 @@ namespace FlameUI {
 
     void Panel::OnDraw()
     {
-        Renderer::AddQuad({ m_Position, m_ZIndex }, m_Dimensions, m_Color, FL_ELEMENT_TYPE_PANEL_INDEX);
+        Renderer::AddQuad(m_Position, m_Dimensions, m_Color, FL_ELEMENT_TYPE_PANEL_INDEX);
     }
 
     void Panel::SetZIndex(float z)
     {
-        m_ZIndex = z;
+        m_Position.z = z;
     }
 
     void Panel::SetFocus(bool value) { m_IsFocused = value; }

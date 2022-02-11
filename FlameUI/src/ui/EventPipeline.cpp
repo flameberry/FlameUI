@@ -11,9 +11,10 @@ namespace FlameUI {
     std::vector<uint16_t>  EventPipeline::s_PanelPositions;
     std::vector<Dockspace> EventPipeline::s_Dockspaces;
 
-    void EventPipeline::Prepare(const std::vector<Panel>& panels)
+    void EventPipeline::SubmitPanel(const PanelCreateInfo& panelCreateInfo) { s_Panels.emplace_back(panelCreateInfo); }
+    void EventPipeline::Prepare()
     {
-        if (!panels.size())
+        if (!s_Panels.size())
         {
             FL_WARN("No Panels provided to the Event Pipeline!");
             return;
@@ -23,7 +24,6 @@ namespace FlameUI {
         const float right = -left;
         const float bottom = -viewportSize.y / Renderer::GetWindowContentScale().y / 2.0f;
         const float top = -bottom;
-        s_Panels = panels;
         s_DepthValues.resize(s_Panels.size());
         s_PanelPositions.resize(s_Panels.size());
         if (s_Panels.size())
@@ -69,6 +69,8 @@ namespace FlameUI {
             // Get all variables, on which the modifications will be performed according to the events
             glm::vec2 panel_position = panel.GetPosition();
             glm::vec2 panel_dimensions = panel.GetDimensions();
+
+            // FL_LOG("Panel pos: {0}, {1}", panel_position.x, panel_position.y);
 
             // Handling Events that depend on focus state of the panel
             if (panel.IsFocused())
@@ -417,7 +419,10 @@ namespace FlameUI {
 
         // Stage 3: Submiting the final position and dimensions of all panels to the Renderer to draw
         for (auto& panel : s_Panels)
+        {
             panel.OnDraw();
+            // FL_LOG("Panel position: {0}, {1}", panel.GetPosition().x, panel.GetPosition().y);
+        }
     }
 
     void EventPipeline::InvalidateFocus()

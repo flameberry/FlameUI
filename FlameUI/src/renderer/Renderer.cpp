@@ -54,7 +54,6 @@ namespace FlameUI {
         glfwGetCursorPos(s_UserWindow, &x, &y);
         s_CursorPosition.x = x - s_ViewportSize.x / s_WindowContentScale.x / 2.0f;
         s_CursorPosition.y = -y + s_ViewportSize.y / s_WindowContentScale.y / 2.0f;
-        FL_LOG("Cursor position is ({0}, {1})", s_CursorPosition.x, s_CursorPosition.y);
         OnResize();
     }
 
@@ -160,11 +159,12 @@ namespace FlameUI {
         vertices[2].texture_uv = { 1.0f, 1.0f };
         vertices[3].texture_uv = { 1.0f, 0.0f };
 
+        glm::mat4 transformation = glm::translate(glm::mat4(1.0f), { ConvertXAxisPixelValueToOpenGLValue(position.x), ConvertYAxisPixelValueToOpenGLValue(position.y), position.z });
+        transformation = glm::scale(transformation, { ConvertXAxisPixelValueToOpenGLValue(dimensions.x), ConvertYAxisPixelValueToOpenGLValue(dimensions.y), 0.0f });
+
         for (uint8_t i = 0; i < 4; i++)
         {
-            vertices[i].position = glm::translate(glm::scale(glm::mat4(1.0f), { ConvertPixelsToOpenGLValues(dimensions), 0.0f }), { ConvertXAxisPixelValueToOpenGLValue(position.x), ConvertYAxisPixelValueToOpenGLValue(position.y), position.z }) * s_TemplateVertexPositions[i];
-            vertices[i].position.x *= s_WindowContentScale.x;
-            vertices[i].position.y *= s_WindowContentScale.y;
+            vertices[i].position = transformation * s_TemplateVertexPositions[i];
             vertices[i].element_type_index = elementTypeIndex;
             vertices[i].color = color;
             vertices[i].quad_dimensions = ConvertPixelsToOpenGLValues(dimensions);
@@ -224,8 +224,8 @@ namespace FlameUI {
         OnUpdate();
 
         /* Set Projection Matrix in GPU memory, for all shader programs to access it */
-        GL_CHECK_ERROR(glBindBuffer(GL_UNIFORM_BUFFER, s_UniformBufferId));
-        GL_CHECK_ERROR(glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(s_UniformBufferData.ProjectionMatrix)));
+        glBindBuffer(GL_UNIFORM_BUFFER, s_UniformBufferId);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(s_UniformBufferData.ProjectionMatrix));
     }
 
     void Renderer::End()
@@ -268,15 +268,15 @@ namespace FlameUI {
             msdfgen::generateMSDF(msdf, shape, s_FontProps.PixelRange, 1.0, msdfgen::Vector2(-bounds.l, -bounds.b));
 
             uint32_t textureId;
-            GL_CHECK_ERROR(glGenTextures(1, &textureId));
-            GL_CHECK_ERROR(glBindTexture(GL_TEXTURE_2D, textureId));
+            glGenTextures(1, &textureId);
+            glBindTexture(GL_TEXTURE_2D, textureId);
 
-            GL_CHECK_ERROR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-            GL_CHECK_ERROR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-            GL_CHECK_ERROR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-            GL_CHECK_ERROR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-            GL_CHECK_ERROR(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, msdf.width(), msdf.height(), 0, GL_RGB, GL_FLOAT, msdf.operator float* ()));
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, msdf.width(), msdf.height(), 0, GL_RGB, GL_FLOAT, msdf.operator float* ());
 
             flame::character ch = {
                 textureId,
@@ -312,8 +312,8 @@ namespace FlameUI {
     glm::vec2 Renderer::ConvertPixelsToOpenGLValues(const glm::vec2& value_in_pixels)
     {
         glm::vec2 position_in_opengl_coords;
-        position_in_opengl_coords.x = value_in_pixels.x * ((2.0f * s_AspectRatio) / s_ViewportSize.x);
-        position_in_opengl_coords.y = value_in_pixels.y * (2.0f / s_ViewportSize.y);
+        position_in_opengl_coords.x = value_in_pixels.x * ((2.0f * s_AspectRatio) / s_ViewportSize.x) * s_WindowContentScale.x;
+        position_in_opengl_coords.y = value_in_pixels.y * (2.0f / s_ViewportSize.y) * s_WindowContentScale.y;
         return position_in_opengl_coords;
     }
 
@@ -329,12 +329,12 @@ namespace FlameUI {
 
     float Renderer::ConvertXAxisPixelValueToOpenGLValue(int X)
     {
-        return static_cast<float>(X) * ((2.0f * s_AspectRatio) / s_ViewportSize.x);
+        return static_cast<float>(X) * ((2.0f * s_AspectRatio) / s_ViewportSize.x) * s_WindowContentScale.x;
     }
 
     float Renderer::ConvertYAxisPixelValueToOpenGLValue(int Y)
     {
-        return static_cast<float>(Y) * (2.0f / s_ViewportSize.y);
+        return static_cast<float>(Y) * (2.0f / s_ViewportSize.y) * s_WindowContentScale.y;
     }
 
     uint32_t Renderer::CreateTexture(const std::string& filePath)
@@ -359,16 +359,16 @@ namespace FlameUI {
         }
 
         uint32_t textureId;
-        GL_CHECK_ERROR(glGenTextures(1, &textureId));
-        GL_CHECK_ERROR(glBindTexture(GL_TEXTURE_2D, textureId));
+        glGenTextures(1, &textureId);
+        glBindTexture(GL_TEXTURE_2D, textureId);
 
-        GL_CHECK_ERROR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-        GL_CHECK_ERROR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-        GL_CHECK_ERROR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
-        GL_CHECK_ERROR(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-        GL_CHECK_ERROR(glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, dataFormat, GL_UNSIGNED_BYTE, data));
-        GL_CHECK_ERROR(glGenerateMipmap(GL_TEXTURE_2D));
+        glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, dataFormat, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
 
         stbi_image_free(data);
         return textureId;

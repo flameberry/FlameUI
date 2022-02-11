@@ -49,33 +49,33 @@ namespace FlameUI {
             offset += 4;
         }
 
-        GL_CHECK_ERROR(glGenVertexArrays(1, &m_VertexArrayId));
-        GL_CHECK_ERROR(glBindVertexArray(m_VertexArrayId));
+        glGenVertexArrays(1, &m_VertexArrayId);
+        glBindVertexArray(m_VertexArrayId);
 
-        GL_CHECK_ERROR(glGenBuffers(1, &m_VertexBufferId));
-        GL_CHECK_ERROR(glBindBuffer(GL_ARRAY_BUFFER, m_VertexBufferId));
-        GL_CHECK_ERROR(glBufferData(GL_ARRAY_BUFFER, MAX_VERTICES * sizeof(Vertex), nullptr, GL_DYNAMIC_DRAW));
+        glGenBuffers(1, &m_VertexBufferId);
+        glBindBuffer(GL_ARRAY_BUFFER, m_VertexBufferId);
+        glBufferData(GL_ARRAY_BUFFER, MAX_VERTICES * sizeof(Vertex), nullptr, GL_DYNAMIC_DRAW);
 
-        GL_CHECK_ERROR(glBindVertexArray(m_VertexArrayId));
+        glBindVertexArray(m_VertexArrayId);
 
-        GL_CHECK_ERROR(glEnableVertexAttribArray(0));
-        GL_CHECK_ERROR(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 13 * sizeof(float), (void*)offsetof(Vertex, position)));
-        GL_CHECK_ERROR(glEnableVertexAttribArray(1));
-        GL_CHECK_ERROR(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 13 * sizeof(float), (void*)offsetof(Vertex, color)));
-        GL_CHECK_ERROR(glEnableVertexAttribArray(2));
-        GL_CHECK_ERROR(glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 13 * sizeof(float), (void*)offsetof(Vertex, texture_uv)));
-        GL_CHECK_ERROR(glEnableVertexAttribArray(3));
-        GL_CHECK_ERROR(glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, 13 * sizeof(float), (void*)offsetof(Vertex, texture_index)));
-        GL_CHECK_ERROR(glEnableVertexAttribArray(4));
-        GL_CHECK_ERROR(glVertexAttribPointer(4, 2, GL_FLOAT, GL_FALSE, 13 * sizeof(float), (void*)offsetof(Vertex, quad_dimensions)));
-        GL_CHECK_ERROR(glEnableVertexAttribArray(5));
-        GL_CHECK_ERROR(glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, 13 * sizeof(float), (void*)offsetof(Vertex, element_type_index)));
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 13 * sizeof(float), (void*)offsetof(Vertex, position));
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 13 * sizeof(float), (void*)offsetof(Vertex, color));
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 13 * sizeof(float), (void*)offsetof(Vertex, texture_uv));
+        glEnableVertexAttribArray(3);
+        glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, 13 * sizeof(float), (void*)offsetof(Vertex, texture_index));
+        glEnableVertexAttribArray(4);
+        glVertexAttribPointer(4, 2, GL_FLOAT, GL_FALSE, 13 * sizeof(float), (void*)offsetof(Vertex, quad_dimensions));
+        glEnableVertexAttribArray(5);
+        glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, 13 * sizeof(float), (void*)offsetof(Vertex, element_type_index));
 
-        GL_CHECK_ERROR(glGenBuffers(1, &m_IndexBufferId));
-        GL_CHECK_ERROR(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IndexBufferId));
-        GL_CHECK_ERROR(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW));
+        glGenBuffers(1, &m_IndexBufferId);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IndexBufferId);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-        GL_CHECK_ERROR(glBindVertexArray(m_VertexArrayId));
+        glBindVertexArray(m_VertexArrayId);
 
         auto [vertexSource, fragmentSource] = Renderer::ReadShaderSource(FL_PROJECT_DIR + std::string("FlameUI/resources/shaders/Quad.glsl"));
         // Create an empty vertex shader handle

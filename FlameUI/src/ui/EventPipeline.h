@@ -6,7 +6,8 @@ namespace FlameUI {
     class EventPipeline
     {
     public:
-        static void Prepare(const std::vector<Panel>& panels);
+        static void SubmitPanel(const PanelCreateInfo& panelCreateInfo);
+        static void Prepare();
         static void Execute();
     private:
         static void InvalidateFocus();

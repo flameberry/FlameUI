@@ -30,9 +30,21 @@ int main()
     panelCreateInfo.dimensions = { 200.0f, 550.0f };
     panelCreateInfo.color = purple;
 
-    FlameUI::Panel panel(panelCreateInfo);
+    FlameUI::PanelCreateInfo panelCreateInfo1{};
+    panelCreateInfo1.position = { 0.0f, 0.0f };
+    panelCreateInfo1.dimensions = { 300, 600 };
+    panelCreateInfo1.color = white;
 
-    FlameUI::EventPipeline::Prepare({ panel });
+    FlameUI::PanelCreateInfo panelCreateInfo2{};
+    panelCreateInfo2.position = { 0.0f, 0.0f };
+    panelCreateInfo2.dimensions = { 100.0f, 550.0f };
+    panelCreateInfo2.color = blue;
+
+    FlameUI::EventPipeline::SubmitPanel(panelCreateInfo);
+    FlameUI::EventPipeline::SubmitPanel(panelCreateInfo1);
+    FlameUI::EventPipeline::SubmitPanel(panelCreateInfo2);
+
+    FlameUI::EventPipeline::Prepare();
 
     while (window.IsRunning())
     {
