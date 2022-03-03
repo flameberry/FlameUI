@@ -45,10 +45,11 @@ namespace FlameUI {
         void Empty();
         void OnDraw();
         void AddQuad(Vertex* vertices);
-    protected:
+        void AddTextureId(uint32_t textureId);
+    private:
         /// Renderer IDs required for OpenGL 
         uint32_t m_VertexBufferId, m_IndexBufferId, m_VertexArrayId, m_ShaderProgramId;
-        std::array<uint32_t, MAX_TEXTURE_SLOTS> m_TextureIds;
+        std::vector<uint32_t> m_TextureIds;
         /// All the vertices stored by a Batch.
         std::vector<Vertex> m_Vertices;
     };

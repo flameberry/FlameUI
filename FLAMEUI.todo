@@ -1,9 +1,6 @@
 Known Bugs
-#1 Fix the 'FlameUI::Renderer::RemoveQuad()' function - No need
-#2 Fix the docking system
+#1 Fix the docking system
 
 TODO:
 #1 Tidy the program
-#2 Add title bar support for panels - Done
-#3 Improve the Event Pipeline Class
-#4 Add MultiThreading Support
+#2 Improve the Event Pipeline Class

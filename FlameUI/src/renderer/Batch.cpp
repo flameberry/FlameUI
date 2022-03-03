@@ -12,6 +12,7 @@ namespace FlameUI {
             m_Vertices.push_back(vertices[i]);
     }
 
+    void Batch::AddTextureId(uint32_t textureId) { m_TextureIds.push_back(textureId); }
     void Batch::OnDraw()
     {
         if (!m_Vertices.size())
@@ -19,6 +20,12 @@ namespace FlameUI {
 
         glBindBuffer(GL_ARRAY_BUFFER, m_VertexBufferId);
         glBufferSubData(GL_ARRAY_BUFFER, 0, m_Vertices.size() * sizeof(Vertex), m_Vertices.data());
+
+        for (uint8_t i = 0; i < m_TextureIds.size(); i++)
+        {
+            glActiveTexture(GL_TEXTURE0 + i);
+            glBindTexture(GL_TEXTURE_2D, m_TextureIds[i]);
+        }
 
         glUseProgram(m_ShaderProgramId);
         glUniform1f(Renderer::GetUniformLocation("u_TitleBarHeight", m_ShaderProgramId), Renderer::ConvertYAxisPixelValueToOpenGLValue(TITLE_BAR_HEIGHT));
@@ -30,10 +37,13 @@ namespace FlameUI {
     void Batch::Empty()
     {
         m_Vertices.clear();
+        m_TextureIds.clear();
     }
 
     void Batch::Init()
     {
+        m_TextureIds.reserve(MAX_TEXTURE_SLOTS);
+
         uint32_t indices[MAX_INDICES];
         size_t offset = 0;
         for (size_t i = 0; i < MAX_INDICES; i += 6)
@@ -175,6 +185,11 @@ namespace FlameUI {
         glm::vec4 panelTitleBarColor = Renderer::GetThemeInfo().panelTitleBarColor;
         glUseProgram(m_ShaderProgramId);
         glUniform4f(Renderer::GetUniformLocation("u_PanelTitleBarColor", m_ShaderProgramId), panelTitleBarColor.x, panelTitleBarColor.y, panelTitleBarColor.z, panelTitleBarColor.w);
+
+        int samplers[MAX_TEXTURE_SLOTS];
+        for (uint32_t i = 0; i < MAX_TEXTURE_SLOTS; i++)
+            samplers[i] = i;
+        glUniform1iv(Renderer::GetUniformLocation("u_TextureSamplers", m_ShaderProgramId), MAX_TEXTURE_SLOTS, samplers);
         glUseProgram(0);
     }
 }

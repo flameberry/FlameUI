@@ -13,7 +13,8 @@
 #include "msdfgen/msdfgen-ext.h"
 
 namespace FlameUI {
-    std::unordered_map<std::string, GLint>     Renderer::m_UniformLocationCache;
+    std::unordered_map<std::string, GLint>     Renderer::s_UniformLocationCache;
+    std::unordered_map<std::string, uint32_t>  Renderer::s_TextureIdCache;
     std::unordered_map<char, flame::character> Renderer::s_Characters;
     Batch                                      Renderer::s_Batch;
     uint32_t                                   Renderer::s_UniformBufferId;
@@ -25,6 +26,7 @@ namespace FlameUI {
     Renderer::FontProps                        Renderer::s_FontProps = { .Scale = 1.0f, .Strength = 0.5f, .PixelRange = 8.0f };
     glm::vec2                                  Renderer::s_ViewportSize = { 1280.0f, 720.0f };
     glm::vec2                                  Renderer::s_CursorPosition = { 0.0f, 0.0f };
+    float                                      Renderer::s_CurrentTextureSlot = 0;
     GLFWwindow* Renderer::s_UserWindow;
 
     void Renderer::OnResize()
@@ -97,7 +99,6 @@ namespace FlameUI {
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
         s_Batch.Init();
-
         FL_INFO("Initialized Renderer!");
     }
 
@@ -150,7 +151,7 @@ namespace FlameUI {
         (*vertices)[3].texture_uv = { 1.0f, 0.0f };
     }
 
-    void Renderer::AddQuad(const glm::vec3& position, const glm::vec2& dimensions, const glm::vec4& color, const float elementTypeIndex)
+    void Renderer::AddQuad(const glm::vec3& position, const glm::vec2& dimensions, const glm::vec4& color, const float elementTypeIndex, UnitType unitType)
     {
         Vertex vertices[4];
 
@@ -159,8 +160,21 @@ namespace FlameUI {
         vertices[2].texture_uv = { 1.0f, 1.0f };
         vertices[3].texture_uv = { 1.0f, 0.0f };
 
-        glm::mat4 transformation = glm::translate(glm::mat4(1.0f), { ConvertXAxisPixelValueToOpenGLValue(position.x), ConvertYAxisPixelValueToOpenGLValue(position.y), position.z });
-        transformation = glm::scale(transformation, { ConvertXAxisPixelValueToOpenGLValue(dimensions.x), ConvertYAxisPixelValueToOpenGLValue(dimensions.y), 0.0f });
+        glm::mat4 transformation{ 1.0f };
+
+        switch (unitType)
+        {
+        case UnitType::PIXEL_UNITS:
+            transformation = glm::translate(glm::mat4(1.0f), { ConvertPixelsToOpenGLValues({ position.x, position.y }), position.z });
+            transformation = glm::scale(transformation, { ConvertPixelsToOpenGLValues(dimensions), 0.0f });
+            break;
+        case UnitType::OPENGL_UNITS:
+            transformation = glm::translate(glm::mat4(1.0f), position);
+            transformation = glm::scale(transformation, { dimensions, 0.0f });
+            break;
+        default:
+            break;
+        }
 
         for (uint8_t i = 0; i < 4; i++)
         {
@@ -171,6 +185,59 @@ namespace FlameUI {
         }
 
         s_Batch.AddQuad(vertices);
+    }
+
+    void Renderer::AddQuad(const glm::vec3& position, const glm::vec2& dimensions, const glm::vec4& color, const float elementTypeIndex, const char* textureFilePath, UnitType unitType)
+    {
+        Vertex vertices[4];
+        vertices[0].texture_uv = { 0.0f, 0.0f };
+        vertices[1].texture_uv = { 0.0f, 1.0f };
+        vertices[2].texture_uv = { 1.0f, 1.0f };
+        vertices[3].texture_uv = { 1.0f, 0.0f };
+
+        glm::mat4 transformation{ 1.0f };
+
+        switch (unitType)
+        {
+        case UnitType::PIXEL_UNITS:
+            transformation = glm::translate(glm::mat4(1.0f), { ConvertPixelsToOpenGLValues({ position.x, position.y }), position.z });
+            transformation = glm::scale(transformation, { ConvertPixelsToOpenGLValues(dimensions), 0.0f });
+            break;
+        case UnitType::OPENGL_UNITS:
+            transformation = glm::translate(glm::mat4(1.0f), position);
+            transformation = glm::scale(transformation, { dimensions, 0.0f });
+            break;
+        default:
+            break;
+        }
+
+        for (uint8_t i = 0; i < 4; i++)
+        {
+            vertices[i].position = transformation * s_TemplateVertexPositions[i];
+            vertices[i].element_type_index = elementTypeIndex;
+            vertices[i].color = color;
+            vertices[i].quad_dimensions = ConvertPixelsToOpenGLValues(dimensions);
+            vertices[i].texture_index = s_CurrentTextureSlot;
+        }
+
+        s_Batch.AddQuad(vertices);
+
+        uint32_t textureId = GetTextureIdIfAvailable(textureFilePath);
+        if (!textureId)
+        {
+            textureId = CreateTexture(textureFilePath);
+            s_TextureIdCache[textureFilePath] = textureId;
+        }
+        s_Batch.AddTextureId(textureId);
+
+        // Increment the texture slot every time a textured quad is added
+        s_CurrentTextureSlot++;
+        if (s_CurrentTextureSlot == MAX_TEXTURE_SLOTS)
+        {
+            s_Batch.OnDraw();
+            s_Batch.Empty();
+            s_CurrentTextureSlot = 0;
+        }
     }
 
     void Renderer::AddText(const std::string& text, const glm::vec2& position_in_pixels, float scale, const glm::vec4& color)
@@ -232,6 +299,7 @@ namespace FlameUI {
     {
         s_Batch.OnDraw();
         s_Batch.Empty();
+        s_CurrentTextureSlot = 0;
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
 
@@ -405,14 +473,22 @@ namespace FlameUI {
 
     GLint Renderer::GetUniformLocation(const std::string& name, uint32_t shaderId)
     {
-        if (m_UniformLocationCache.find(name) != m_UniformLocationCache.end())
-            return m_UniformLocationCache[name];
+        if (s_UniformLocationCache.find(name) != s_UniformLocationCache.end())
+            return s_UniformLocationCache[name];
 
         GLint location = glGetUniformLocation(shaderId, name.c_str());
         if (location == -1)
             FL_WARN("Uniform \"{0}\" not found!", name);
-        m_UniformLocationCache[name] = location;
+        s_UniformLocationCache[name] = location;
         return location;
+    }
+
+    uint32_t Renderer::GetTextureIdIfAvailable(const char* textureFilePath)
+    {
+        if (s_TextureIdCache.find(textureFilePath) != s_TextureIdCache.end())
+            return s_TextureIdCache[textureFilePath];
+        else
+            return 0;
     }
 
     void Renderer::CleanUp()

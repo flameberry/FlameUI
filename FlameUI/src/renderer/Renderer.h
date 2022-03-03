@@ -10,8 +10,9 @@
 #include "../ui/Text.h"
 
 namespace FlameUI {
-    struct QuadCreateInfo
+    enum class UnitType
     {
+        NONE = 0, PIXEL_UNITS, OPENGL_UNITS
     };
 
     struct ThemeInfo
@@ -40,11 +41,13 @@ namespace FlameUI {
         static glm::vec2   GetViewportSize();
         static glm::vec2   GetTextDimensions(const std::string& text, float scale);
         static GLint       GetUniformLocation(const std::string& name, uint32_t shaderId);
+        static float       GetAspectRatio() { return s_AspectRatio; }
         static glm::vec2   ConvertPixelsToOpenGLValues(const glm::vec2& value_in_pixels);
         static glm::vec2   ConvertOpenGLValuesToPixels(const glm::vec2& opengl_coords);
         static float       ConvertXAxisPixelValueToOpenGLValue(int X);
         static float       ConvertYAxisPixelValueToOpenGLValue(int Y);
-        static void        AddQuad(const glm::vec3& position, const glm::vec2& dimensions, const glm::vec4& color, const float elementTypeIndex);
+        static void        AddQuad(const glm::vec3& position, const glm::vec2& dimensions, const glm::vec4& color, const float elementTypeIndex, const char* textureFilePath, UnitType unitType = UnitType::PIXEL_UNITS);
+        static void        AddQuad(const glm::vec3& position, const glm::vec2& dimensions, const glm::vec4& color, const float elementTypeIndex, UnitType unitType = UnitType::PIXEL_UNITS);
         static void        AddText(const std::string& text, const glm::vec2& position_in_pixels, float scale, const glm::vec4& color);
         static void        CleanUp();
         static uint32_t    CreateTexture(const std::string& filePath);
@@ -59,9 +62,11 @@ namespace FlameUI {
         static void     OnUpdate();
         static void     LoadFont(const std::string& filePath);
         static void     GetQuadVertices(std::array<Vertex, 4>* vertices, const QuadPosType& positionType, const glm::vec2& position_in_pixels, const glm::vec2& dimensions_in_pixels, const glm::vec4& color, float z, float elementTypeIndex);
+        static uint32_t GetTextureIdIfAvailable(const char* textureFilePath);
     private:
         /// Struct that contains all the matrices needed by the shader, which will be stored in a Uniform Buffer
         struct UniformBufferData { glm::mat4 ProjectionMatrix; };
+        struct TextureUniformBufferData { int Samplers[MAX_TEXTURE_SLOTS]; };
         struct FontProps
         {
             float Scale;
@@ -98,8 +103,17 @@ namespace FlameUI {
         /// Stores the GLFWwindow where FlameUI is being drawn
         static GLFWwindow* s_UserWindow;
         /// Stores the uniform location in a shader if the location needs to be reused
-        static std::unordered_map<std::string, GLint>    m_UniformLocationCache;
+        static std::unordered_map<std::string, GLint>    s_UniformLocationCache;
+        /// Stores the texture IDs of the already loaded textures to be reused
+        static std::unordered_map<std::string, uint32_t> s_TextureIdCache;
 
-        constexpr static glm::vec4 s_TemplateVertexPositions[4] = { {-0.5f, -0.5f, 0.0f, 1.0f}, {-0.5f, 0.5f, 0.0f, 1.0f}, {0.5f, 0.5f, 0.0f, 1.0f}, {0.5f, -0.5f, 0.0f, 1.0f} };
+        static float s_CurrentTextureSlot;
+
+        constexpr static glm::vec4 s_TemplateVertexPositions[4] = {
+             {-0.5f, -0.5f, 0.0f, 1.0f},
+             {-0.5f,  0.5f, 0.0f, 1.0f},
+             { 0.5f,  0.5f, 0.0f, 1.0f},
+             { 0.5f, -0.5f, 0.0f, 1.0f}
+        };
     };
 }
