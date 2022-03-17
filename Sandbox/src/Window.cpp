@@ -2,7 +2,7 @@
 #include <glad/glad.h>
 #include <iostream>
 
-namespace FlameBerry {
+namespace Flameberry {
     std::shared_ptr<Window> Window::Create(uint32_t width, uint32_t height, const char* title, bool vsync)
     {
         return std::make_shared<Window>(width, height, title, vsync);

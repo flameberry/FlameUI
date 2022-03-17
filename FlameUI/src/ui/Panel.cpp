@@ -3,12 +3,12 @@
 #include "../utils/Timer.h"
 
 namespace FlameUI {
-    Panel::Panel(const PanelCreateInfo& panelCreateInfo)
-        : m_PanelName(panelCreateInfo.title),
-        m_Position({ panelCreateInfo.position.x, panelCreateInfo.position.y, 0.0f }),
-        m_Dimensions(panelCreateInfo.dimensions),
+    Panel::Panel(const std::string& title, const glm::vec2& position, const glm::vec2& dimensions, const glm::vec4& color)
+        : m_PanelName(title),
+        m_Position({ position.x, position.y, 0.0f }),
+        m_Dimensions(dimensions),
         m_InnerPadding(15, 10),
-        m_Color(panelCreateInfo.color),
+        m_Color(color),
         m_OffsetOfCursorWhenGrabbed(0.0f),
         m_GrabState(GrabState::NotGrabbed),
         m_ResizeState(ResizeState::None),
@@ -23,17 +23,17 @@ namespace FlameUI {
     bool Panel::IsHoveredOnPanel()
     {
         glm::vec2& cursor_pos = Renderer::GetCursorPosition();
-        if ((cursor_pos.x >= m_Bounds.Left - 3.0f) && (cursor_pos.x <= m_Bounds.Right + 3.0f) && (cursor_pos.y >= m_Bounds.Bottom - 3.0f) && (cursor_pos.y <= m_Bounds.Top + 3.0f))
+        if ((cursor_pos.x >= m_PanelRect2D.l - 3.0f) && (cursor_pos.x <= m_PanelRect2D.r + 3.0f) && (cursor_pos.y >= m_PanelRect2D.b - 3.0f) && (cursor_pos.y <= m_PanelRect2D.t + 3.0f))
             return true;
         return false;
     }
 
     void Panel::InvalidateBounds()
     {
-        m_Bounds.Left = m_Position.x - m_Dimensions.x / 2.0f;
-        m_Bounds.Right = m_Position.x + m_Dimensions.x / 2.0f;
-        m_Bounds.Bottom = m_Position.y - m_Dimensions.y / 2.0f;
-        m_Bounds.Top = m_Position.y + m_Dimensions.y / 2.0f;
+        m_PanelRect2D.l = m_Position.x - m_Dimensions.x / 2.0f;
+        m_PanelRect2D.r = m_Position.x + m_Dimensions.x / 2.0f;
+        m_PanelRect2D.b = m_Position.y - m_Dimensions.y / 2.0f;
+        m_PanelRect2D.t = m_Position.y + m_Dimensions.y / 2.0f;
     }
 
     void Panel::OnDraw()
@@ -48,8 +48,8 @@ namespace FlameUI {
 
     void Panel::SetFocus(bool value) { m_IsFocused = value; }
 
-    std::shared_ptr<Panel> Panel::Create(const PanelCreateInfo& panelCreateInfo)
+    std::shared_ptr<Panel> Panel::Create(const std::string& title, const glm::vec2& position, const glm::vec2& dimensions, const glm::vec4& color)
     {
-        return std::make_shared<Panel>(panelCreateInfo);
+        return std::make_shared<Panel>(title, position, dimensions, color);
     }
 }

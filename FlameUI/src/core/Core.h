@@ -99,16 +99,16 @@ GL_ERROR()
 
 namespace FlameUI {
     enum class QuadPosType { None = 0, QuadPosBottomLeftVertex, QuadPosCenter };
-    struct Bounds
+    struct Rect2D
     {
-        float Left, Right, Bottom, Top;
-        Bounds() = default;
-        Bounds(float val)
-            : Left(val), Right(val), Bottom(val), Top(val)
+        float l, r, b, t;
+        Rect2D() = default;
+        Rect2D(float val)
+            : l(val), r(val), b(val), t(val)
         {
         }
-        Bounds(float left, float right, float bottom, float top)
-            : Left(left), Right(right), Bottom(bottom), Top(top)
+        Rect2D(float l, float r, float b, float t)
+            : l(l), r(r), b(b), t(t)
         {
         }
     };
@@ -116,3 +116,12 @@ namespace FlameUI {
 
 #define FL_QUAD_POS_BOTTOM_LEFT_VERTEX FlameUI::QuadPosType::QuadPosBottomLeftVertex
 #define FL_QUAD_POS_CENTER FlameUI::QuadPosType::QuadPosCenter
+
+#define FL_WHITE glm::vec4{ 1.0f }
+#define FL_YELLOW glm::vec4{ 1.0f, 1.0f, 0.0f, 1.0f }
+#define FL_PURPLE glm::vec4{ 1.0f, 0.0f, 1.0f, 1.0f }
+#define FL_BLUE glm::vec4{ 0.0f, 1.0f, 1.0f, 1.0f }
+#define FL_BLACK glm::vec4{ 0.0f, 0.0f, 0.0f, 1.0f }
+#define FL_DARK_BLUE glm::vec4{ 0.0f, 0.0f, 1.0f, 1.0f }
+#define FL_RED glm::vec4{ 1.0f, 0.0f, 0.0f, 1.0f }
+#define FL_PINK glm::vec4{ 1.0f, 157.0f / 255.0f, 207.0f / 255.0f, 1.0f }

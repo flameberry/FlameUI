@@ -6,7 +6,6 @@
 
 namespace FlameUI {
     enum class GrabState { NotGrabbed = 0, Grabbed };
-
     enum class ResizeState { None = 0, HoveredOnResizeArea, Resizing };
     enum class DetailedResizeState
     {
@@ -22,22 +21,10 @@ namespace FlameUI {
         DockedLeft, DockedRight, DockedBottom, DockedTop
     };
 
-    struct PanelCreateInfo
-    {
-        // The title that will be displayed in the title bar of the panel
-        std::string title;
-        // The starting position of the panel
-        glm::vec2 position;
-        // The starting dimensions of the panel
-        glm::vec2 dimensions;
-        // Temporary variable to enable panel identification during early stages of the program
-        glm::vec4 color;
-    };
-
     class Panel
     {
     public:
-        Panel(const PanelCreateInfo& panelCreateInfo);
+        Panel(const std::string& title = "Untitled Panel", const glm::vec2& position = glm::vec2{ 0.0f }, const glm::vec2& dimensions = glm::vec2{ 100.0f }, const glm::vec4& color = FL_WHITE);
         ~Panel() = default;
 
         void                OnDraw();
@@ -60,7 +47,7 @@ namespace FlameUI {
         float               GetZIndex() const { return m_Position.z; }
         std::string         GetPanelName() const { return m_PanelName; }
         uint32_t            GetPanelQuadId() const { return m_PanelQuadId; }
-        Bounds              GetBounds() const { return m_Bounds; }
+        Rect2D              GetPanelRect2D() const { return m_PanelRect2D; }
         float               GetWidth() const { return m_Dimensions.x; }
         float               GetHeight() const { return m_Dimensions.y; }
         glm::vec2           GetPosition() const { return m_Position; }
@@ -74,7 +61,7 @@ namespace FlameUI {
         // Gets the offset stored by the 'StoreOffsetOfCursorFromCenter' function
         glm::vec2           GetOffsetOfCursorFromCenter() const { return m_OffsetOfCursorWhenGrabbed; }
 
-        static std::shared_ptr<Panel> Create(const PanelCreateInfo& panelCreateInfo);
+        static std::shared_ptr<Panel> Create(const std::string& title = "Untitled Panel", const glm::vec2& position = glm::vec2{ 0.0f }, const glm::vec2& dimensions = glm::vec2{ 100.0f }, const glm::vec4& color = FL_WHITE);
     private:
         // Stores the unique QuadId provided by the Renderer to every Quad
         uint32_t                             m_PanelQuadId;
@@ -83,7 +70,7 @@ namespace FlameUI {
         // Stores the dimensions of the panel in pixel units
         glm::vec2                            m_Dimensions;
         // Stores the coordinates of the boundaries of the panel
-        Bounds                               m_Bounds;
+        Rect2D                               m_PanelRect2D;
         // Stores the Inner Padding of the panel, which is used to calculate button positions
         glm::vec2                            m_InnerPadding;
         // Stores the background color of the panel
