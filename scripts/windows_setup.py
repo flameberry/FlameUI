@@ -16,7 +16,7 @@ output = subprocess.run(
         '-Wno-dev',
         '-S.',
         '-Bbuild/visual_studio',
-        '-G"Visual Studio 16 2019"'
+        '-G"Visual Studio 17 2022"'
     ]
 )
 
