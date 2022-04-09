@@ -16,6 +16,9 @@ namespace FlameUI {
         m_DockState(DockState::None),
         m_DetailedDockState(DetailedDockState::NotDocked)
     {
+        static uint32_t i = 0;
+        m_PanelId = i;
+        i++;
         // Set the bounds for initialize the panel
         InvalidateBounds();
     }
@@ -38,7 +41,15 @@ namespace FlameUI {
 
     void Panel::OnDraw()
     {
-        Renderer::AddQuad(m_Position, m_Dimensions, m_Color, FL_ELEMENT_TYPE_PANEL_INDEX);
+        // Render the panel
+        Renderer::AddQuad(m_Position, m_Dimensions, m_Color, FL_ELEMENT_TYPE_PANEL_INDEX, UnitType::PIXEL_UNITS, m_IsFocused);
+
+        // Render all the buttons
+        for (auto& buttonInfo : m_ButtonInfos)
+            Renderer::AddQuad(glm::vec3{ m_Position.x, m_Position.y, m_Position.z + 0.0000001f }, buttonInfo.dimensions, Renderer::GetThemeInfo().buttonColor, FL_ELEMENT_TYPE_BUTTON_INDEX);
+
+        // Empty the button vector
+        m_ButtonInfos.clear();
     }
 
     void Panel::SetZIndex(float z)
@@ -51,5 +62,10 @@ namespace FlameUI {
     std::shared_ptr<Panel> Panel::Create(const std::string& title, const glm::vec2& position, const glm::vec2& dimensions, const glm::vec4& color)
     {
         return std::make_shared<Panel>(title, position, dimensions, color);
+    }
+
+    void Panel::AddButton(const std::string& text, const glm::vec2& position, const glm::vec2& dimensions)
+    {
+        m_ButtonInfos.emplace_back(text, glm::vec3{ m_Position.x, m_Position.y, m_Position.z + 0.0000000001f }, dimensions);
     }
 }

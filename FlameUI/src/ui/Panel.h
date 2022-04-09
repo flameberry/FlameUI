@@ -28,6 +28,7 @@ namespace FlameUI {
         ~Panel() = default;
 
         void                OnDraw();
+        void                AddButton(const std::string& text, const glm::vec2& position, const glm::vec2& dimensions);
         bool                IsFocused() const { return m_IsFocused; }
         void                SetGrabState(const GrabState& grabState) { m_GrabState = grabState; }
         void                SetResizeState(const ResizeState& resizeState) { m_ResizeState = resizeState; }
@@ -46,7 +47,7 @@ namespace FlameUI {
         void                SetZIndex(float z);
         float               GetZIndex() const { return m_Position.z; }
         std::string         GetPanelName() const { return m_PanelName; }
-        uint32_t            GetPanelQuadId() const { return m_PanelQuadId; }
+        uint32_t            GetPanelId() const { return m_PanelId; }
         Rect2D              GetPanelRect2D() const { return m_PanelRect2D; }
         float               GetWidth() const { return m_Dimensions.x; }
         float               GetHeight() const { return m_Dimensions.y; }
@@ -63,8 +64,7 @@ namespace FlameUI {
 
         static std::shared_ptr<Panel> Create(const std::string& title = "Untitled Panel", const glm::vec2& position = glm::vec2{ 0.0f }, const glm::vec2& dimensions = glm::vec2{ 100.0f }, const glm::vec4& color = FL_WHITE);
     private:
-        // Stores the unique QuadId provided by the Renderer to every Quad
-        uint32_t                             m_PanelQuadId;
+        uint32_t                             m_PanelId;
         // Important: m_Position is the position of the center of the panel
         glm::vec3                            m_Position;
         // Stores the dimensions of the panel in pixel units
@@ -85,6 +85,7 @@ namespace FlameUI {
         DetailedResizeState                  m_DetailedResizeState;
         DockState                            m_DockState;
         DetailedDockState                    m_DetailedDockState;
-        // std::vector<std::shared_ptr<Button>> m_Buttons;
+
+        std::vector<ButtonInfo>              m_ButtonInfos;
     };
 }

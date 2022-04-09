@@ -16,7 +16,6 @@ namespace Flameberry {
     private:
         Window m_Window;
         Flameberry::FlameUILayer m_FlameUILayer;
-
     private:
         static SandboxApp* s_App;
     };

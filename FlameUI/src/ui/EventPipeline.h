@@ -8,6 +8,7 @@ namespace FlameUI {
     {
     public:
         static void SubmitPanel(const std::string& title, const glm::vec2& position, const glm::vec2& dimensions, const glm::vec4& color);
+        static void SubmitButton(const std::string& text, const glm::vec2& position, const glm::vec2& dimensions);
         static void Prepare();
         static void Execute();
 

@@ -5,12 +5,23 @@
 #define FL_NOT_CLICKED -2
 #define FL_CLICKED_ON_NOTHING -1
 
+#define FL_MAX_PANELS 100
+
 namespace FlameUI {
     std::vector<Panel>    EventPipeline::s_Panels;
     std::vector<float>    EventPipeline::s_DepthValues;
     std::vector<uint16_t> EventPipeline::s_PanelPositions;
 
-    void EventPipeline::SubmitPanel(const std::string& title, const glm::vec2& position, const glm::vec2& dimensions, const glm::vec4& color) { s_Panels.emplace_back(title, position, dimensions, color); }
+    void EventPipeline::SubmitPanel(const std::string& title, const glm::vec2& position, const glm::vec2& dimensions, const glm::vec4& color)
+    {
+        s_Panels.emplace_back(title, position, dimensions, color);
+    }
+
+    void EventPipeline::SubmitButton(const std::string& text, const glm::vec2& position, const glm::vec2& dimensions)
+    {
+        s_Panels.back().AddButton(text, position, dimensions);
+    }
+
     void EventPipeline::Prepare()
     {
         if (!s_Panels.size())
@@ -266,15 +277,13 @@ namespace FlameUI {
                 //     Renderer::AddQuad({ left + panel_dimensions.x / 2.0f, 0.0f, 0.0f }, { panel_dimensions.x, top - bottom }, { 0.0f, 1.0f, 1.0f, 0.4f }, FL_ELEMENT_TYPE_GENERAL_INDEX);
                 // }
                 // ------
+
+                // Stage 2: Handle all panel inner-events like button clicking, scrolling, slider events, etc.
+                // -------------------------------------------------------------------------------------------
             }
-            // Handling events that are panel focus independent
+
             panel.SetPosition(panel_position);
             panel.SetDimensions(panel_dimensions);
-            // -----------------------------------------------------------------------------
-
-            // Stage 2: Handle all panel inner-events like button clicking, scrolling, slider events, etc.
-            // -------------------------------------------------------------------------------------------
-
         }
 
         // Stage 3: Submiting the final position and dimensions of all panels to the Renderer to draw

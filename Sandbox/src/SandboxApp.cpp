@@ -13,7 +13,7 @@ namespace Flameberry {
     {
         while (m_Window.IsRunning())
         {
-            glClearColor(FL_PINK.x, FL_PINK.y, FL_PINK.z, FL_PINK.w);
+            glClearColor(50.0f / 255.0f, 50.0f / 255.0f, 50.0f / 255.0f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT);
 
             m_FlameUILayer.OnRender();

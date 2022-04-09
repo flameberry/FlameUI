@@ -16,7 +16,7 @@ namespace FlameUI {
     std::unordered_map<std::string, GLint>     Renderer::s_UniformLocationCache;
     std::unordered_map<std::string, uint32_t>  Renderer::s_TextureIdCache;
     std::unordered_map<char, flame::character> Renderer::s_Characters;
-    Batch                                      Renderer::s_Batch;
+    Renderer::Batch                            Renderer::s_Batch;
     uint32_t                                   Renderer::s_UniformBufferId;
     glm::vec2                                  Renderer::s_WindowContentScale;
     float                                      Renderer::s_AspectRatio = (float)(1280.0f / 720.0f);
@@ -98,60 +98,217 @@ namespace FlameUI {
         glBindBufferRange(GL_UNIFORM_BUFFER, 0, s_UniformBufferId, 0, sizeof(UniformBufferData));
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-        s_Batch.Init();
+        InitBatch();
         FL_INFO("Initialized Renderer!");
     }
 
-    void Renderer::GetQuadVertices(
-        std::array<Vertex, 4>* vertices,
-        const QuadPosType& positionType,
-        const glm::vec2& position_in_pixels,
-        const glm::vec2& dimensions_in_pixels,
-        const glm::vec4& color,
-        float z,
-        float elementTypeIndex
-    )
+    void Renderer::InitBatch()
     {
-        glm::vec2 position = ConvertPixelsToOpenGLValues(position_in_pixels);
-        glm::vec2 dimensions = ConvertPixelsToOpenGLValues(dimensions_in_pixels);
+        s_Batch.TextureIds.reserve(MAX_TEXTURE_SLOTS);
 
-        Vertex Vertices[4];
-
-        switch (positionType)
+        uint32_t indices[MAX_INDICES];
+        size_t offset = 0;
+        for (size_t i = 0; i < MAX_INDICES; i += 6)
         {
-        case FL_QUAD_POS_BOTTOM_LEFT_VERTEX:
-            (*vertices)[0].position = { position.x,                position.y,                z };
-            (*vertices)[1].position = { position.x,                position.y + dimensions.y, z };
-            (*vertices)[2].position = { position.x + dimensions.x, position.y + dimensions.y, z };
-            (*vertices)[3].position = { position.x + dimensions.x, position.y,                z };
-            break;
-        case FL_QUAD_POS_CENTER:
-            (*vertices)[0].position = { -(dimensions.x / 2.0f) + position.x, -(dimensions.y / 2.0f) + position.y, z };
-            (*vertices)[1].position = { -(dimensions.x / 2.0f) + position.x, +(dimensions.y / 2.0f) + position.y, z };
-            (*vertices)[2].position = { +(dimensions.x / 2.0f) + position.x, +(dimensions.y / 2.0f) + position.y, z };
-            (*vertices)[3].position = { +(dimensions.x / 2.0f) + position.x, -(dimensions.y / 2.0f) + position.y, z };
-            break;
-        default:
-            break;
+            indices[0 + i] = 1 + offset;
+            indices[1 + i] = 2 + offset;
+            indices[2 + i] = 3 + offset;
+
+            indices[3 + i] = 3 + offset;
+            indices[4 + i] = 0 + offset;
+            indices[5 + i] = 1 + offset;
+
+            offset += 4;
         }
 
-        for (auto& vertex : (*vertices))
+        glGenVertexArrays(1, &s_Batch.VertexArrayId);
+        glBindVertexArray(s_Batch.VertexArrayId);
+
+        glGenBuffers(1, &s_Batch.VertexBufferId);
+        glBindBuffer(GL_ARRAY_BUFFER, s_Batch.VertexBufferId);
+        glBufferData(GL_ARRAY_BUFFER, MAX_VERTICES * sizeof(Vertex), nullptr, GL_DYNAMIC_DRAW);
+
+        glBindVertexArray(s_Batch.VertexArrayId);
+
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)offsetof(Vertex, position));
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)offsetof(Vertex, color));
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)offsetof(Vertex, texture_uv));
+        glEnableVertexAttribArray(3);
+        glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)offsetof(Vertex, texture_index));
+        glEnableVertexAttribArray(4);
+        glVertexAttribPointer(4, 2, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)offsetof(Vertex, quad_dimensions));
+        glEnableVertexAttribArray(5);
+        glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)offsetof(Vertex, element_type_index));
+        glEnableVertexAttribArray(6);
+        glVertexAttribPointer(6, 1, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)offsetof(Vertex, is_panel_active));
+
+        glGenBuffers(1, &s_Batch.IndexBufferId);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, s_Batch.IndexBufferId);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+        glBindVertexArray(s_Batch.VertexArrayId);
+
+        auto [vertexSource, fragmentSource] = Renderer::ReadShaderSource(FL_PROJECT_DIR + std::string("FlameUI/resources/shaders/Quad.glsl"));
+        // Create an empty vertex shader handle
+        GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
+
+        // Send the vertex shader source code to GL
+        // Note that std::string's .c_str is NULL character terminated.
+        const GLchar* source = (const GLchar*)vertexSource.c_str();
+        glShaderSource(vertex_shader, 1, &source, 0);
+
+        // Compile the vertex shader
+        glCompileShader(vertex_shader);
+
+        GLint isCompiled = 0;
+        glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &isCompiled);
+        if (isCompiled == GL_FALSE)
         {
-            vertex.position.x *= s_WindowContentScale.x;
-            vertex.position.y *= s_WindowContentScale.y;
-            vertex.quad_dimensions = dimensions;
-            vertex.color = color;
-            vertex.texture_index = -1.0f;
-            vertex.element_type_index = elementTypeIndex;
+            GLint maxLength = 0;
+            glGetShaderiv(vertex_shader, GL_INFO_LOG_LENGTH, &maxLength);
+
+            // The maxLength includes the NULL character
+            std::vector<GLchar> infoLog(maxLength);
+            glGetShaderInfoLog(vertex_shader, maxLength, &maxLength, &infoLog[0]);
+
+            // We don't need the shader anymore.
+            glDeleteShader(vertex_shader);
+
+            FL_ERROR("Error compiling VERTEX shader:\n{0}", infoLog.data());
         }
 
-        (*vertices)[0].texture_uv = { 0.0f, 0.0f };
-        (*vertices)[1].texture_uv = { 0.0f, 1.0f };
-        (*vertices)[2].texture_uv = { 1.0f, 1.0f };
-        (*vertices)[3].texture_uv = { 1.0f, 0.0f };
+        // Create an empty fragment shader handle
+        GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+
+        // Send the fragment shader source code to GL
+        // Note that std::string's .c_str is NULL character terminated.
+        source = (const GLchar*)fragmentSource.c_str();
+        glShaderSource(fragment_shader, 1, &source, 0);
+
+        // Compile the fragment shader
+        glCompileShader(fragment_shader);
+
+        glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &isCompiled);
+        if (isCompiled == GL_FALSE)
+        {
+            GLint maxLength = 0;
+            glGetShaderiv(fragment_shader, GL_INFO_LOG_LENGTH, &maxLength);
+
+            // The maxLength includes the NULL character
+            std::vector<GLchar> infoLog(maxLength);
+            glGetShaderInfoLog(fragment_shader, maxLength, &maxLength, &infoLog[0]);
+
+            // We don't need the shader anymore.
+            glDeleteShader(fragment_shader);
+            // Either of them. Don't leak shaders.
+            glDeleteShader(vertex_shader);
+
+            FL_ERROR("Error compiling FRAGMENT shader:\n{0}", infoLog.data());
+        }
+
+        // Vertex and fragment shaders are successfully compiled.
+        // Now time to link them together into a program.
+        // Get a program object.
+        s_Batch.ShaderProgramId = glCreateProgram();
+
+        // Attach our shaders to our program
+        glAttachShader(s_Batch.ShaderProgramId, vertex_shader);
+        glAttachShader(s_Batch.ShaderProgramId, fragment_shader);
+
+        // Link our program
+        glLinkProgram(s_Batch.ShaderProgramId);
+
+        // Note the different functions here: glGetProgram* instead of glGetShader*.
+        GLint isLinked = 0;
+        glGetProgramiv(s_Batch.ShaderProgramId, GL_LINK_STATUS, (int*)&isLinked);
+        if (isLinked == GL_FALSE)
+        {
+            GLint maxLength = 0;
+            glGetProgramiv(s_Batch.ShaderProgramId, GL_INFO_LOG_LENGTH, &maxLength);
+
+            // The maxLength includes the NULL character
+            std::vector<GLchar> infoLog(maxLength);
+            glGetProgramInfoLog(s_Batch.ShaderProgramId, maxLength, &maxLength, &infoLog[0]);
+
+            // We don't need the program anymore.
+            glDeleteProgram(s_Batch.ShaderProgramId);
+            // Don't leak shaders either.
+            glDeleteShader(vertex_shader);
+            glDeleteShader(fragment_shader);
+
+            FL_ERROR("Error linking shader program:\n{0}", infoLog.data());
+        }
+
+        // Always detach shaders after a successful link.
+        glDetachShader(s_Batch.ShaderProgramId, vertex_shader);
+        glDetachShader(s_Batch.ShaderProgramId, fragment_shader);
+
+        glUseProgram(s_Batch.ShaderProgramId);
+
+        int samplers[MAX_TEXTURE_SLOTS];
+        for (uint32_t i = 0; i < MAX_TEXTURE_SLOTS; i++)
+            samplers[i] = i;
+        glUniform1iv(Renderer::GetUniformLocation("u_TextureSamplers", s_Batch.ShaderProgramId), MAX_TEXTURE_SLOTS, samplers);
+        glUseProgram(0);
     }
 
-    void Renderer::AddQuad(const glm::vec3& position, const glm::vec2& dimensions, const glm::vec4& color, const float elementTypeIndex, UnitType unitType)
+    void Renderer::FlushBatch()
+    {
+        if (!s_Batch.Vertices.size())
+            return;
+
+        glBindBuffer(GL_ARRAY_BUFFER, s_Batch.VertexBufferId);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, s_Batch.Vertices.size() * sizeof(Vertex), s_Batch.Vertices.data());
+
+        for (uint8_t i = 0; i < s_Batch.TextureIds.size(); i++)
+        {
+            glActiveTexture(GL_TEXTURE0 + i);
+            glBindTexture(GL_TEXTURE_2D, s_Batch.TextureIds[i]);
+        }
+
+        glUseProgram(s_Batch.ShaderProgramId);
+        glUniform1f(Renderer::GetUniformLocation("u_TitleBarHeight", s_Batch.ShaderProgramId), Renderer::ConvertYAxisPixelValueToOpenGLValue(TITLE_BAR_HEIGHT));
+
+        glUniform4f(
+            Renderer::GetUniformLocation("u_PanelTitleBarActiveColor", s_Batch.ShaderProgramId),
+            s_ThemeInfo.panelTitleBarActiveColor.x,
+            s_ThemeInfo.panelTitleBarActiveColor.y,
+            s_ThemeInfo.panelTitleBarActiveColor.z,
+            s_ThemeInfo.panelTitleBarActiveColor.w
+        );
+        glUniform4f(
+            Renderer::GetUniformLocation("u_PanelTitleBarInactiveColor", s_Batch.ShaderProgramId),
+            s_ThemeInfo.panelTitleBarInactiveColor.x,
+            s_ThemeInfo.panelTitleBarInactiveColor.y,
+            s_ThemeInfo.panelTitleBarInactiveColor.z,
+            s_ThemeInfo.panelTitleBarInactiveColor.w
+        );
+        glUniform4f(
+            Renderer::GetUniformLocation("u_PanelBgColor", s_Batch.ShaderProgramId),
+            s_ThemeInfo.panelBgColor.x,
+            s_ThemeInfo.panelBgColor.y,
+            s_ThemeInfo.panelBgColor.z,
+            s_ThemeInfo.panelBgColor.w
+        );
+        glUniform4f(
+            Renderer::GetUniformLocation("u_BorderColor", s_Batch.ShaderProgramId),
+            s_ThemeInfo.borderColor.x,
+            s_ThemeInfo.borderColor.y,
+            s_ThemeInfo.borderColor.z,
+            s_ThemeInfo.borderColor.w
+        );
+
+        glBindVertexArray(s_Batch.VertexArrayId);
+        glDrawElements(GL_TRIANGLES, (s_Batch.Vertices.size() / 4) * 6, GL_UNSIGNED_INT, 0);
+
+        s_Batch.Vertices.clear();
+        s_Batch.TextureIds.clear();
+    }
+
+    void Renderer::AddQuad(const glm::vec3& position, const glm::vec2& dimensions, const glm::vec4& color, const float elementTypeIndex, UnitType unitType, bool isPanelActive)
     {
         Vertex vertices[4];
 
@@ -182,12 +339,14 @@ namespace FlameUI {
             vertices[i].element_type_index = elementTypeIndex;
             vertices[i].color = color;
             vertices[i].quad_dimensions = ConvertPixelsToOpenGLValues(dimensions);
+            vertices[i].is_panel_active = isPanelActive ? 1.0f : 0.0f;
         }
 
-        s_Batch.AddQuad(vertices);
+        for (uint8_t i = 0; i < 4; i++)
+            s_Batch.Vertices.push_back(vertices[i]);
     }
 
-    void Renderer::AddQuad(const glm::vec3& position, const glm::vec2& dimensions, const glm::vec4& color, const float elementTypeIndex, const char* textureFilePath, UnitType unitType)
+    void Renderer::AddQuad(const glm::vec3& position, const glm::vec2& dimensions, const glm::vec4& color, const float elementTypeIndex, const char* textureFilePath, UnitType unitType, bool isPanelActive)
     {
         Vertex vertices[4];
         vertices[0].texture_uv = { 0.0f, 0.0f };
@@ -218,9 +377,11 @@ namespace FlameUI {
             vertices[i].color = color;
             vertices[i].quad_dimensions = ConvertPixelsToOpenGLValues(dimensions);
             vertices[i].texture_index = s_CurrentTextureSlot;
+            vertices[i].is_panel_active = isPanelActive ? 1.0f : 0.0f;
         }
 
-        s_Batch.AddQuad(vertices);
+        for (uint8_t i = 0; i < 4; i++)
+            s_Batch.Vertices.push_back(vertices[i]);
 
         uint32_t textureId = GetTextureIdIfAvailable(textureFilePath);
         if (!textureId)
@@ -228,14 +389,13 @@ namespace FlameUI {
             textureId = CreateTexture(textureFilePath);
             s_TextureIdCache[textureFilePath] = textureId;
         }
-        s_Batch.AddTextureId(textureId);
+        s_Batch.TextureIds.push_back(textureId);
 
         // Increment the texture slot every time a textured quad is added
         s_CurrentTextureSlot++;
         if (s_CurrentTextureSlot == MAX_TEXTURE_SLOTS)
         {
-            s_Batch.OnDraw();
-            s_Batch.Empty();
+            FlushBatch();
             s_CurrentTextureSlot = 0;
         }
     }
@@ -297,8 +457,7 @@ namespace FlameUI {
 
     void Renderer::End()
     {
-        s_Batch.OnDraw();
-        s_Batch.Empty();
+        FlushBatch();
         s_CurrentTextureSlot = 0;
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
