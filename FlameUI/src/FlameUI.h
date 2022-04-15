@@ -6,4 +6,5 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include "utils/Timer.h"
-#include "ui/EventPipeline.h"
+#include "ui/Pipeline.h"
+#include "core/Input.h"

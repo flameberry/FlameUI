@@ -1,6 +1,7 @@
-#include "EventPipeline.h"
+#include "Pipeline.h"
 #include <glm/glm.hpp>
 #include "../renderer/Renderer.h"
+#include "../core/Input.h"
 
 #define FL_NOT_CLICKED -2
 #define FL_CLICKED_ON_NOTHING -1
@@ -8,21 +9,21 @@
 #define FL_MAX_PANELS 100
 
 namespace FlameUI {
-    std::vector<Panel>    EventPipeline::s_Panels;
-    std::vector<float>    EventPipeline::s_DepthValues;
-    std::vector<uint16_t> EventPipeline::s_PanelPositions;
+    std::vector<Panel>    Pipeline::s_Panels;
+    std::vector<float>    Pipeline::s_DepthValues;
+    std::vector<uint16_t> Pipeline::s_PanelPositions;
 
-    void EventPipeline::SubmitPanel(const std::string& title, const glm::vec2& position, const glm::vec2& dimensions, const glm::vec4& color)
+    void Pipeline::SubmitPanel(const std::string& title, const glm::vec2& position, const glm::vec2& dimensions, const glm::vec4& color)
     {
         s_Panels.emplace_back(title, position, dimensions, color);
     }
 
-    void EventPipeline::SubmitButton(const std::string& text, const glm::vec2& position, const glm::vec2& dimensions)
+    void Pipeline::SubmitButton(const std::string& text, const glm::vec2& dimensions)
     {
-        s_Panels.back().AddButton(text, position, dimensions);
+        s_Panels.back().AddButton(text, dimensions);
     }
 
-    void EventPipeline::Prepare()
+    void Pipeline::Prepare()
     {
         if (!s_Panels.size())
         {
@@ -50,7 +51,7 @@ namespace FlameUI {
         }
     }
 
-    void EventPipeline::Execute()
+    void Pipeline::Execute()
     {
         // Get all variables which will be needed for all the event handling
         GLFWwindow* window = Renderer::GetUserGLFWwindow();
@@ -75,6 +76,47 @@ namespace FlameUI {
             // Get all variables, on which the modifications will be performed according to the events
             glm::vec2 panel_position = panel.GetPosition();
             glm::vec2 panel_dimensions = panel.GetDimensions();
+
+            // Check all button states
+            if (panel.GetMainState() == MainState::None)
+            {
+                if (panel.GetMainState() == MainState::InPanelActivity)
+                    panel.SetMainState(MainState::None);
+
+                for (auto& button : panel.GetPanelButtons())
+                {
+                    if (button.GetPressState() == PressState::Hovered)
+                        button.SetPressState(PressState::NotPressed);
+
+                    if (Input::IsCursorInRect2D(button.GetButtonInfo().buttonRect2D))
+                    {
+                        if (Input::IsMouseButton(GLFW_MOUSE_BUTTON_LEFT, GLFW_PRESS))
+                            button.SetPressState(PressState::Pressed);
+                        else
+                            button.SetPressState(PressState::Hovered);
+                    }
+
+                    if (Input::IsMouseButton(GLFW_MOUSE_BUTTON_LEFT, GLFW_RELEASE) && button.GetPressState() != PressState::Hovered)
+                        button.SetPressState(PressState::NotPressed);
+
+                    if (button.GetPressState() == PressState::Pressed)
+                        panel.SetMainState(MainState::InPanelActivity);
+                }
+            }
+
+            for (auto& button : panel.GetPanelButtons())
+            {
+                std::string press_state = "";
+                switch (button.GetPressState())
+                {
+                case PressState::NotPressed: press_state = "Not_Pressed"; break;
+                case PressState::Hovered: press_state = "Hovered"; break;
+                case PressState::Pressed: press_state = "Pressed"; break;
+                }
+                FL_LOG("Button: {0}", press_state);
+            }
+            // -----------------------
+
 
             // Handling Events that depend on focus state of the panel
             if (panel.IsFocused())
@@ -104,22 +146,24 @@ namespace FlameUI {
 
                 bool is_cursor_on_title_bar = is_in_panel_area && cursor_pos.y >= panel_rect_2D.t - TITLE_BAR_HEIGHT;
 
+                bool is_hovered_on_resize_area = false;
+
                 // Set all the states of panel
-                // Setting GrabState of the panel
+                // Setting MainState of the panel to Grabbed
                 if (!panel.IsResizing())
                 {
-                    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+                    if (Input::IsMouseButton(GLFW_MOUSE_BUTTON_LEFT, GLFW_PRESS))
                     {
                         // See if cursor is inside panel area when mouse button left is pressed
-                        if (is_in_panel_area && !is_on_borders)
+                        if (is_in_panel_area && !is_on_borders && !panel.IsInPanelActivity())
                         {
                             if (!panel.IsGrabbed())
                                 panel.StoreOffsetOfCursorFromCenter({ cursor_pos.x - panel_position.x, cursor_pos.y - panel_position.y });
-                            panel.SetGrabState(GrabState::Grabbed);
+                            panel.SetMainState(MainState::Grabbed);
                         }
                     }
 
-                    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE)
+                    if (Input::IsMouseButton(GLFW_MOUSE_BUTTON_LEFT, GLFW_RELEASE))
                     {
                         if (panel.IsGrabbed() && is_cursor_on_title_bar)
                         {
@@ -145,23 +189,22 @@ namespace FlameUI {
                             }
                         }
                         // Set the panel state to not grabbed as the mouse button has been released
-                        panel.SetGrabState(GrabState::NotGrabbed);
+                        panel.SetMainState(MainState::None);
                     }
                 }
 
                 // Setting all resizing states
                 // Resetting Resize State of panel based on previous state
-                if (panel.GetResizeState() != ResizeState::Resizing)
+                if (!panel.IsResizing())
                 {
-                    panel.SetResizeState(ResizeState::None);
                     panel.SetDetailedResizeState(DetailedResizeState::NotResizing);
                     if (is_on_borders)
-                        panel.SetResizeState(ResizeState::HoveredOnResizeArea);
+                        is_hovered_on_resize_area = true;
                 }
 
                 // Changing cursor to symbolize resizing, if hovered on the borders of a panel
                 GLFWcursor* cursor = NULL;
-                if (!panel.IsGrabbed() && panel.GetResizeState() == ResizeState::HoveredOnResizeArea)
+                if (!panel.IsGrabbed() && is_hovered_on_resize_area)
                 {
                     if (is_on_left_border || is_on_right_border)
                         cursor = glfwCreateStandardCursor(GLFW_HRESIZE_CURSOR);
@@ -173,15 +216,15 @@ namespace FlameUI {
                         cursor = glfwCreateStandardCursor(GLFW_RESIZE_NESW_CURSOR);
                 }
 
-                if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE)
+                if (Input::IsMouseButton(GLFW_MOUSE_BUTTON_LEFT, GLFW_RELEASE))
                 {
-                    if (panel.GetResizeState() != ResizeState::HoveredOnResizeArea)
-                        panel.SetResizeState(ResizeState::None);
+                    if (panel.GetMainState() == MainState::Resizing)
+                        panel.SetMainState(MainState::None);
                 }
 
-                if (!panel.IsGrabbed() && panel.GetResizeState() == ResizeState::HoveredOnResizeArea && glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+                if (!panel.IsGrabbed() && is_hovered_on_resize_area && Input::IsMouseButton(GLFW_MOUSE_BUTTON_LEFT, GLFW_PRESS) && !panel.IsInPanelActivity())
                 {
-                    panel.SetResizeState(ResizeState::Resizing);
+                    panel.SetMainState(MainState::Resizing);
                     if (is_on_left_border)
                         panel.SetDetailedResizeState(DetailedResizeState::ResizingLeftBorder);
                     else if (is_on_right_border)
@@ -277,13 +320,10 @@ namespace FlameUI {
                 //     Renderer::AddQuad({ left + panel_dimensions.x / 2.0f, 0.0f, 0.0f }, { panel_dimensions.x, top - bottom }, { 0.0f, 1.0f, 1.0f, 0.4f }, FL_ELEMENT_TYPE_GENERAL_INDEX);
                 // }
                 // ------
-
-                // Stage 2: Handle all panel inner-events like button clicking, scrolling, slider events, etc.
                 // -------------------------------------------------------------------------------------------
             }
 
-            panel.SetPosition(panel_position);
-            panel.SetDimensions(panel_dimensions);
+            panel.UpdateMetrics(panel_position, panel_dimensions);
         }
 
         // Stage 3: Submiting the final position and dimensions of all panels to the Renderer to draw
@@ -291,7 +331,7 @@ namespace FlameUI {
             panel.OnDraw();
     }
 
-    void EventPipeline::InvalidateFocus()
+    void Pipeline::InvalidateFocus()
     {
         GLFWwindow* window = Renderer::GetUserGLFWwindow();
         float z_index = -0.95f;
@@ -339,7 +379,7 @@ namespace FlameUI {
                     first_time = false;
                 }
 
-                if ((last_panel_index != FL_CLICKED_ON_NOTHING) && (panel_index != last_panel_index) && (!s_Panels[last_panel_index].IsGrabbed()) && (!s_Panels[last_panel_index].IsResizing()))
+                if ((last_panel_index != FL_CLICKED_ON_NOTHING) && (panel_index != last_panel_index) && s_Panels[last_panel_index].GetMainState() == MainState::None)
                 {
                     InvalidatePanelPositions(panel_index);
                     s_Panels[last_panel_index].SetFocus(false);
@@ -360,7 +400,8 @@ namespace FlameUI {
             {
                 if ((last_panel_index != FL_NOT_CLICKED) && (last_panel_index != FL_CLICKED_ON_NOTHING))
                 {
-                    if ((!s_Panels[last_panel_index].IsGrabbed()) && (!s_Panels[last_panel_index].IsResizing()))
+                    // if ((!s_Panels[last_panel_index].IsGrabbed()) && (!s_Panels[last_panel_index].IsResizing()))
+                    if (s_Panels[last_panel_index].GetMainState() == MainState::None)
                     {
                         s_Panels[last_panel_index].SetFocus(false);
                         last_panel_index = FL_CLICKED_ON_NOTHING;
@@ -370,7 +411,7 @@ namespace FlameUI {
         }
     }
 
-    void EventPipeline::InvalidatePanelPositions(int current_panel_index)
+    void Pipeline::InvalidatePanelPositions(int current_panel_index)
     {
         for (uint16_t i = 0; i < s_PanelPositions.size(); i++)
         {
@@ -382,7 +423,7 @@ namespace FlameUI {
             s_Panels[i].SetZIndex(s_DepthValues[s_PanelPositions[i]]);
     }
 
-    Metrics EventPipeline::GetPanelMetricsForResizingLeft(const Metrics& panelMetrics, const glm::vec2& cursorPosition)
+    Metrics Pipeline::GetPanelMetricsForResizingLeft(const Metrics& panelMetrics, const glm::vec2& cursorPosition)
     {
         Metrics newPanelMetrics = panelMetrics;
 
@@ -395,7 +436,7 @@ namespace FlameUI {
         return newPanelMetrics;
     }
 
-    Metrics EventPipeline::GetPanelMetricsForResizingRight(const Metrics& panelMetrics, const glm::vec2& cursorPosition)
+    Metrics Pipeline::GetPanelMetricsForResizingRight(const Metrics& panelMetrics, const glm::vec2& cursorPosition)
     {
         Metrics newPanelMetrics = panelMetrics;
         float left_border_x_coord = newPanelMetrics.position.x - newPanelMetrics.dimensions.x / 2.0f;
@@ -407,7 +448,7 @@ namespace FlameUI {
         return newPanelMetrics;
     }
 
-    Metrics EventPipeline::GetPanelMetricsForResizingBottom(const Metrics& panelMetrics, const glm::vec2& cursorPosition)
+    Metrics Pipeline::GetPanelMetricsForResizingBottom(const Metrics& panelMetrics, const glm::vec2& cursorPosition)
     {
         Metrics newPanelMetrics = panelMetrics;
         float top_border_y_coord = newPanelMetrics.position.y + newPanelMetrics.dimensions.y / 2.0f;
@@ -419,7 +460,7 @@ namespace FlameUI {
         return newPanelMetrics;
     }
 
-    Metrics EventPipeline::GetPanelMetricsForResizingTop(const Metrics& panelMetrics, const glm::vec2& cursorPosition)
+    Metrics Pipeline::GetPanelMetricsForResizingTop(const Metrics& panelMetrics, const glm::vec2& cursorPosition)
     {
         Metrics newPanelMetrics = panelMetrics;
         float bottom_border_y_coord = newPanelMetrics.position.y - newPanelMetrics.dimensions.y / 2.0f;

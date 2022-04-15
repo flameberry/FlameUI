@@ -5,21 +5,19 @@
 #include <GLFW/glfw3.h>
 
 namespace FlameUI {
-    enum class GrabState { NotGrabbed = 0, Grabbed };
-    enum class ResizeState { None = 0, HoveredOnResizeArea, Resizing };
     enum class DetailedResizeState
     {
         NotResizing = 0,
         ResizingLeftBorder, ResizingRightBorder, ResizingBottomBorder, ResizingTopBorder,
         ResizingBottomLeftCorner, ResizingBottomRightCorner, ResizingTopLeftCorner, ResizingTopRightCorner
     };
-
     enum class DockState { None = 0, HoveredOnDockingArea, Docked };
     enum class DetailedDockState
     {
         NotDocked = 0,
         DockedLeft, DockedRight, DockedBottom, DockedTop
     };
+    enum class MainState { None = 0, Grabbed, Resizing, InPanelActivity };
 
     class Panel
     {
@@ -28,20 +26,20 @@ namespace FlameUI {
         ~Panel() = default;
 
         void                OnDraw();
-        void                AddButton(const std::string& text, const glm::vec2& position, const glm::vec2& dimensions);
+        void                AddButton(const std::string& text, const glm::vec2& dimensions);
         bool                IsFocused() const { return m_IsFocused; }
-        void                SetGrabState(const GrabState& grabState) { m_GrabState = grabState; }
-        void                SetResizeState(const ResizeState& resizeState) { m_ResizeState = resizeState; }
-        ResizeState         GetResizeState() const { return m_ResizeState; }
         void                SetDetailedResizeState(const DetailedResizeState& detailedResizeState) { m_DetailedResizeState = detailedResizeState; }
         DetailedResizeState GetDetailedResizeState() const { return m_DetailedResizeState; }
         DockState           GetDockState() const { return m_DockState; }
         void                SetDockstate(const DockState& dockState) { m_DockState = dockState; }
         DetailedDockState   GetDetailedDockState() const { return m_DetailedDockState; }
         void                SetDetailedDockstate(const DetailedDockState& detailedDockState) { m_DetailedDockState = detailedDockState; }
-        bool                IsGrabbed() const { return m_GrabState == GrabState::Grabbed; }
-        bool                IsResizing() const { return m_ResizeState == ResizeState::Resizing; }
+        MainState           GetMainState() const { return m_MainState; }
+        void                SetMainState(const MainState& mainState) { m_MainState = mainState; }
+        bool                IsGrabbed() const { return m_MainState == MainState::Grabbed; }
+        bool                IsResizing() const { return m_MainState == MainState::Resizing; }
         bool                IsDocked() const { return m_DockState == DockState::Docked; }
+        bool                IsInPanelActivity() const { return m_MainState == MainState::InPanelActivity; }
         bool                IsHoveredOnPanel();
         void                SetFocus(bool value);
         void                SetZIndex(float z);
@@ -51,6 +49,7 @@ namespace FlameUI {
         Rect2D              GetPanelRect2D() const { return m_PanelRect2D; }
         float               GetWidth() const { return m_Dimensions.x; }
         float               GetHeight() const { return m_Dimensions.y; }
+        void                UpdateMetrics(const glm::vec2& position, const glm::vec2& dimensions);
         glm::vec2           GetPosition() const { return m_Position; }
         void                SetPosition(const glm::vec2& position) { m_Position.x = position.x; m_Position.y = position.y; }
         glm::vec2           GetDimensions() const { return m_Dimensions; }
@@ -61,6 +60,9 @@ namespace FlameUI {
         void                StoreOffsetOfCursorFromCenter(const glm::vec2& offset) { m_OffsetOfCursorWhenGrabbed = offset; }
         // Gets the offset stored by the 'StoreOffsetOfCursorFromCenter' function
         glm::vec2           GetOffsetOfCursorFromCenter() const { return m_OffsetOfCursorWhenGrabbed; }
+
+        void                InvalidateButtonPos();
+        std::vector<Button>& GetPanelButtons() { return m_Buttons; }
 
         static std::shared_ptr<Panel> Create(const std::string& title = "Untitled Panel", const glm::vec2& position = glm::vec2{ 0.0f }, const glm::vec2& dimensions = glm::vec2{ 100.0f }, const glm::vec4& color = FL_WHITE);
     private:
@@ -78,14 +80,12 @@ namespace FlameUI {
         // Stores the title which will be displayed in the title bar of the panel
         std::string                          m_PanelName;
         bool                                 m_IsFocused = false;
-        GrabState                            m_GrabState;
         // Stores the offset of the cursor from the center of the panel, when the panel is grabbed
         glm::vec2                            m_OffsetOfCursorWhenGrabbed;
-        ResizeState                          m_ResizeState;
         DetailedResizeState                  m_DetailedResizeState;
         DockState                            m_DockState;
         DetailedDockState                    m_DetailedDockState;
-
-        std::vector<ButtonInfo>              m_ButtonInfos;
+        MainState                            m_MainState;
+        std::vector<Button>                  m_Buttons;
     };
 }

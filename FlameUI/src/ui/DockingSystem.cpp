@@ -1,5 +1,5 @@
 #include "DockingSystem.h"
-#include "EventPipeline.h"
+#include "Pipeline.h"
 
 namespace FlameUI {
     DockingSystem::DockingSystem()
@@ -12,7 +12,7 @@ namespace FlameUI {
 
     void DockingSystem::DockLeft(Panel& panel)
     {
-        for (auto& _panel : EventPipeline::GetPanels())
+        for (auto& _panel : Pipeline::GetPanels())
         {
             if (_panel.IsDocked())
             {

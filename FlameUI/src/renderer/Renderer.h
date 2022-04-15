@@ -29,6 +29,7 @@ namespace FlameUI {
         glm::vec4 panelTitleBarInactiveColor;
         glm::vec4 borderColor;
         glm::vec4 buttonColor;
+        glm::vec4 buttonHoveredColor;
     };
 
     struct RendererInitInfo

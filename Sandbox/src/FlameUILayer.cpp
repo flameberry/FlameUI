@@ -12,6 +12,7 @@ namespace Flameberry {
         themeInfo.panelTitleBarActiveColor = { 0.16f, 0.29f, 0.48f, 1.00f };
 
         themeInfo.buttonColor = { 0.26f, 0.59f, 0.98f, 0.40f };
+        themeInfo.buttonHoveredColor = { 0.26f, 0.59f, 0.98f, 1.00f };
 
         FlameUI::RendererInitInfo rendererInitInfo{};
         rendererInitInfo.userWindow = SandboxApp::GetApp()->GetMainWindow().GetGLFWwindow();
@@ -20,22 +21,21 @@ namespace Flameberry {
 
         FlameUI::Renderer::Init(rendererInitInfo);
 
-        FlameUI::EventPipeline::SubmitPanel("Panel", glm::vec2{ 0.0f }, { 200.0f, 550.0f }, FL_PURPLE);
-        FlameUI::EventPipeline::SubmitPanel("PanelOne", glm::vec2{ 0.0f }, { 300.0f, 600.0f }, FL_WHITE);
-        FlameUI::EventPipeline::SubmitPanel("PanelTwo", glm::vec2{ 0.0f }, { 100.0f, 550.0f }, FL_BLUE);
-        FlameUI::EventPipeline::SubmitPanel("PanelThree", glm::vec2{ 0.0f }, { 300.0f, 300.0f }, FL_DARK_BLUE);
-        FlameUI::EventPipeline::SubmitPanel("PanelFour", glm::vec2{ 0.0f }, { 300.0f, 200.0f }, FL_DARK_BLUE);
+        FlameUI::Pipeline::SubmitPanel("Panel", glm::vec2{ 0.0f }, { 200.0f, 550.0f }, FL_PURPLE);
+        FlameUI::Pipeline::SubmitButton("whatever", { 80.0f, 30.0f });
 
-        FlameUI::EventPipeline::Prepare();
+        FlameUI::Pipeline::SubmitPanel("PanelOne", glm::vec2{ 0.0f }, { 300.0f, 600.0f }, FL_WHITE);
+        FlameUI::Pipeline::SubmitPanel("PanelTwo", glm::vec2{ 0.0f }, { 100.0f, 550.0f }, FL_BLUE);
+        FlameUI::Pipeline::SubmitPanel("PanelThree", glm::vec2{ 0.0f }, { 300.0f, 300.0f }, FL_DARK_BLUE);
+        FlameUI::Pipeline::SubmitPanel("PanelFour", glm::vec2{ 0.0f }, { 300.0f, 200.0f }, FL_DARK_BLUE);
+
+        FlameUI::Pipeline::Prepare();
     }
 
     void FlameUILayer::OnRender()
     {
         FlameUI::Renderer::Begin();
-
-        FlameUI::EventPipeline::SubmitButton("whatever", { 100.0f, 100.0f }, { 80.0f, 30.0f });
-        FlameUI::EventPipeline::Execute();
-
+        FlameUI::Pipeline::Execute();
         FlameUI::Renderer::End();
     }
 }
