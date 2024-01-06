@@ -5,7 +5,8 @@ Aim is to make a User Interface Library which will be super efficient and fast. 
 ### **Important: This project is not matured or meant to be actually used by a user to integrate in his/her own project. I made this project when I was quite young so this repository is here to showcase what I did, and not a production ready user interface library.**
 
 ***
-<video src="README/FlameUI_Showcase.mov" autoplay loop muted></video>
+
+https://github.com/flameberry/FlameUI/assets/92864825/7427ca21-174c-4afd-80e9-49870eebc72f
 
 ## Features
 1. Multiple Panel Support (Panel Selection System)
