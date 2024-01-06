@@ -1,12 +1,19 @@
 # FlameUI [C++ UI Library]
 
-Aim is to make a User Interface Library which will be super efficient and fast.
+Aim is to make a User Interface Library which will be super efficient and fast. This is made purely using OpenGL and C++, aiming to creating a user interface library ground up.
 
 ### **Important: This project is not matured or meant to be actually used by a user to integrate in his/her own project. I made this project when I was quite young so this repository is here to showcase what I did, and not a production ready user interface library.**
 
 ***
+<video src="README/FlameUI_Showcase.mov" autoplay loop muted></video>
 
-![Demo Video](README/FlameUI_Showcase.mov)
+## Features
+1. Multiple Panel Support (Panel Selection System)
+2. Panel resizing
+3. Title Bar for every Panel
+4. Text Rendering (In previous commits, PS: This is an unprofessional way to mention a feature)
+5. Basic Button Behaviour (Demonstrated in the Video)
+6. Attempt to make a Docking System
 
 ### For single config generators like MakeFiles, Ninja:
 
