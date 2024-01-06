@@ -4,7 +4,7 @@
 #include <sstream>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include "../utils/Timer.h"
+#include "utils/Timer.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image/stb_image.h>
@@ -321,16 +321,16 @@ namespace FlameUI {
 
         switch (unitType)
         {
-        case UnitType::PIXEL_UNITS:
-            transformation = glm::translate(glm::mat4(1.0f), { ConvertPixelsToOpenGLValues({ position.x, position.y }), position.z });
-            transformation = glm::scale(transformation, { ConvertPixelsToOpenGLValues(dimensions), 0.0f });
-            break;
-        case UnitType::OPENGL_UNITS:
-            transformation = glm::translate(glm::mat4(1.0f), position);
-            transformation = glm::scale(transformation, { dimensions, 0.0f });
-            break;
-        default:
-            break;
+            case UnitType::PIXEL_UNITS:
+                transformation = glm::translate(glm::mat4(1.0f), { ConvertPixelsToOpenGLValues({ position.x, position.y }), position.z });
+                transformation = glm::scale(transformation, { ConvertPixelsToOpenGLValues(dimensions), 0.0f });
+                break;
+            case UnitType::OPENGL_UNITS:
+                transformation = glm::translate(glm::mat4(1.0f), position);
+                transformation = glm::scale(transformation, { dimensions, 0.0f });
+                break;
+            default:
+                break;
         }
 
         for (uint8_t i = 0; i < 4; i++)
@@ -358,16 +358,16 @@ namespace FlameUI {
 
         switch (unitType)
         {
-        case UnitType::PIXEL_UNITS:
-            transformation = glm::translate(glm::mat4(1.0f), { ConvertPixelsToOpenGLValues({ position.x, position.y }), position.z });
-            transformation = glm::scale(transformation, { ConvertPixelsToOpenGLValues(dimensions), 0.0f });
-            break;
-        case UnitType::OPENGL_UNITS:
-            transformation = glm::translate(glm::mat4(1.0f), position);
-            transformation = glm::scale(transformation, { dimensions, 0.0f });
-            break;
-        default:
-            break;
+            case UnitType::PIXEL_UNITS:
+                transformation = glm::translate(glm::mat4(1.0f), { ConvertPixelsToOpenGLValues({ position.x, position.y }), position.z });
+                transformation = glm::scale(transformation, { ConvertPixelsToOpenGLValues(dimensions), 0.0f });
+                break;
+            case UnitType::OPENGL_UNITS:
+                transformation = glm::translate(glm::mat4(1.0f), position);
+                transformation = glm::scale(transformation, { dimensions, 0.0f });
+                break;
+            default:
+                break;
         }
 
         for (uint8_t i = 0; i < 4; i++)
@@ -442,6 +442,7 @@ namespace FlameUI {
             for (uint8_t i = 0; i < 4; i++)
                 vertices[i].color = color;
 
+            // AddQuadToTextBatch(nullptr, vertices, character.textureId);
             position.x += (character.advance) * scale + 1.0f;
         }
     }
@@ -566,38 +567,58 @@ namespace FlameUI {
 
     uint32_t Renderer::CreateTexture(const std::string& filePath)
     {
-        stbi_set_flip_vertically_on_load(true);
+        // stbi_set_flip_vertically_on_load(true);
 
-        int width, height, channels;
-        unsigned char* data = stbi_load(filePath.c_str(), &width, &height, &channels, 0);
+        // int width, height, channels;
+        // unsigned char* data = stbi_load(filePath.c_str(), &width, &height, &channels, 0);
 
-        FL_ASSERT(data, "Failed to load texture from \"{0}\"", filePath);
+        // FL_ASSERT(data, "Failed to load texture from \"{0}\"", filePath);
 
-        GLenum internalFormat = 0, dataFormat = 0;
-        if (channels == 4)
-        {
-            internalFormat = GL_RGBA8;
-            dataFormat = GL_RGBA;
-        }
-        else if (channels == 3)
-        {
-            internalFormat = GL_RGB8;
-            dataFormat = GL_RGB;
-        }
+        // GLenum internalFormat = 0, dataFormat = 0;
+        // if (channels == 4)
+        // {
+        //     internalFormat = GL_RGBA8;
+        //     dataFormat = GL_RGBA;
+        // }
+        // else if (channels == 3)
+        // {
+        //     internalFormat = GL_RGB8;
+        //     dataFormat = GL_RGB;
+        // }
+
+        // uint32_t textureId;
+        // glGenTextures(1, &textureId);
+        // glBindTexture(GL_TEXTURE_2D, textureId);
+
+        // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+        // glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, dataFormat, GL_UNSIGNED_BYTE, data);
+        // glGenerateMipmap(GL_TEXTURE_2D);
+
+        // stbi_image_free(data);
+
+        uint32_t* data = new uint32_t[100 * 100];
+        for (uint32_t i = 0; i < 100 * 100; i++)
+            data[i] = 0xffff00ff;
 
         uint32_t textureId;
-        glGenTextures(1, &textureId);
-        glBindTexture(GL_TEXTURE_2D, textureId);
+        GL_CHECK_ERROR(glGenTextures(1, &textureId));
+        glActiveTexture(GL_TEXTURE0);
+        GL_CHECK_ERROR(glBindTexture(GL_TEXTURE_2D, textureId));
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        // Set parameters to determine how the texture is resized
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        // Set parameters to determine how the texture wraps at edges
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-        glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, dataFormat, GL_UNSIGNED_BYTE, data);
+        // glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        GL_CHECK_ERROR(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 100, 100, 0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, data));
         glGenerateMipmap(GL_TEXTURE_2D);
-
-        stbi_image_free(data);
         return textureId;
     }
 

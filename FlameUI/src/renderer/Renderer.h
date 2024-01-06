@@ -5,9 +5,9 @@
 #include <glad/glad.h>
 #include <unordered_map>
 #include <GLFW/glfw3.h>
-#include "../core/Core.h"
-#include "../ui/Text.h"
-#include "../core/ElementTypeIndex.h"
+#include "core/Core.h"
+#include "ui/Text.h"
+#include "core/ElementTypeIndex.h"
 
 /// This Macro contains the max number of texture slots that the GPU supports, varies for each computer.
 #define MAX_TEXTURE_SLOTS 16

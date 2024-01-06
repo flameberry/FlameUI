@@ -16,7 +16,8 @@ namespace Flameberry {
 
         FlameUI::RendererInitInfo rendererInitInfo{};
         rendererInitInfo.userWindow = SandboxApp::GetApp()->GetMainWindow().GetGLFWwindow();
-        rendererInitInfo.enableFontRendering = false;
+        rendererInitInfo.enableFontRendering = true;
+        rendererInitInfo.fontFilePath = FL_PROJECT_DIR"FlameUI/resources/fonts/OpenSans-Regular.ttf";
         rendererInitInfo.themeInfo = &themeInfo;
 
         FlameUI::Renderer::Init(rendererInitInfo);
@@ -34,8 +35,6 @@ namespace Flameberry {
 
     void FlameUILayer::OnRender()
     {
-        FlameUI::Renderer::Begin();
         FlameUI::Pipeline::Execute();
-        FlameUI::Renderer::End();
     }
 }

@@ -16,7 +16,11 @@ namespace Flameberry {
             glClearColor(50.0f / 255.0f, 50.0f / 255.0f, 50.0f / 255.0f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT);
 
+            FlameUI::Renderer::Begin();
+            // FlameUI::Renderer::AddQuad({ 0, 0, 0 }, { 3.5f, 0.2f }, FL_WHITE, FL_ELEMENT_TYPE_GENERAL_INDEX, FlameUI::UnitType::OPENGL_UNITS);
             m_FlameUILayer.OnRender();
+            FlameUI::Renderer::End();
+
             m_Window.OnUpdate();
         }
     }

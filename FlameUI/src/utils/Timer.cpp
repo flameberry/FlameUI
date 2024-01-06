@@ -1,7 +1,7 @@
 #include "Timer.h"
 
 #ifdef FL_PROFILING
-#include "../core/Core.h"
+#include "core/Core.h"
 #include <fstream>
 
 namespace FlameUI {

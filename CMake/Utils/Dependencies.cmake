@@ -15,6 +15,7 @@ endif()
 
 # All Include Dirs needed for the project
 set(FL_GRAPHICS_INCLUDE_DIRS
+    ${FL_SOURCE_DIR}/FlameUI/src
     ${FL_SOURCE_DIR}/FlameUI/vendor
     ${FL_SOURCE_DIR}/FlameUI/vendor/GLFW/include
     ${FL_SOURCE_DIR}/FlameUI/vendor/Glad/include

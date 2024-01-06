@@ -16,7 +16,8 @@ def check_cmake_installation():
         cmake_path = cmake_path_windows
     cmake_exists = cmake_path.is_file()
     if cmake_exists:
-        print(f"[FLAMEUI]: CMake was found at the path \"{cmake_path.resolve()}\"")
+        print(
+            f"[FLAMEUI]: CMake was found at the path \"{cmake_path.resolve()}\"")
     elif not cmake_exists:
         print("[FLAMEUI]: CMake not found.\n[FLAMEUI]: If you wish to install cmake, visit https://cmake.org/download/")
         exit()
@@ -33,7 +34,8 @@ def check_cmd_line_tools_installation():
         make_exists = False
 
     if make_exists:
-        print(f"[FLAMEUI]: \'Make\' was found at the path \"{make_path[0].resolve()}\"")
+        print(
+            f"[FLAMEUI]: \'Make\' was found at the path \"{make_path[0].resolve()}\"")
     elif not make_exists:
         print("[FLAMEUI]: \'Make\' not found.\n[FLAMEUI]: To install \'make\', you need to install \'Command Line Tools\' using the command \'xcode-select --install\' in the Terminal App.")
         exit()

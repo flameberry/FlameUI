@@ -1,7 +1,7 @@
 #include "Pipeline.h"
 #include <glm/glm.hpp>
-#include "../renderer/Renderer.h"
-#include "../core/Input.h"
+#include "renderer/Renderer.h"
+#include "core/Input.h"
 
 #define FL_NOT_CLICKED -2
 #define FL_CLICKED_ON_NOTHING -1

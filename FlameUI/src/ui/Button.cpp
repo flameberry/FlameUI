@@ -1,5 +1,5 @@
 #include "Button.h"
-#include "../renderer/Renderer.h"
+#include "renderer/Renderer.h"
 
 namespace FlameUI {
     Button::Button(const ButtonInfo& buttonInfo)

@@ -1,10 +1,8 @@
 # FlameUI [C++ UI Library]
 
-## Aim is to make FlameUI Library super efficient and fast.
-
-<hr>
-
-### <u>For single config generators like MakeFiles, Ninja:</u>
+Aim is to make a User Interface Library which will be super efficient and fast.
+***
+### For single config generators like MakeFiles, Ninja:
 
 Use cmake while specifying the value of `CMAKE_BUILD_TYPE` cmake variable to be either `Debug` or `Release`
 
@@ -13,9 +11,8 @@ If not provided with `CMAKE_BUILD_TYPE`, default build configuration selected wi
 
 <hr>
 
-### Developer Note: Yet to test build process on Windows. Library currently under development.
+_Developer Note: Yet to test build process on Windows. Library currently under development._
 
-<hr>
 
 ### Following are all the dependencies for this project, also found in 'FlameUI/vendor':
 
@@ -29,5 +26,3 @@ If not provided with `CMAKE_BUILD_TYPE`, default build configuration selected wi
 
 Portions of this software are copyright © 2021 The FreeType
 Project (www.freetype.org). All rights reserved.
-
-<hr>

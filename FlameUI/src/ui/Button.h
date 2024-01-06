@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 #include <glm/glm.hpp>
-#include "../core/Core.h"
+#include "core/Core.h"
 
 namespace FlameUI {
     enum class PressState { NotPressed = 0, Hovered, Pressed };

@@ -1,5 +1,5 @@
 #include "Input.h"
-#include "../renderer/Renderer.h"
+#include "renderer/Renderer.h"
 
 namespace FlameUI {
     GLFWwindow* Input::m_GLFWwindowCache = NULL;

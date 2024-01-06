@@ -1,6 +1,6 @@
 #include "Panel.h"
-#include "../core/Core.h"
-#include "../utils/Timer.h"
+#include "core/Core.h"
+#include "utils/Timer.h"
 
 #define FL_VERY_SMALL_NUMBER 0.000001f
 

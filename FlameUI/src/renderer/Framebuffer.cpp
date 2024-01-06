@@ -1,5 +1,5 @@
 #include "Framebuffer.h"
-#include "../core/Core.h"
+#include "core/Core.h"
 #include <glad/glad.h>
 
 namespace FlameUI {

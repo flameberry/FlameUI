@@ -1,6 +1,6 @@
 #pragma once
 #include <vector>
-#include "../renderer/Renderer.h"
+#include "renderer/Renderer.h"
 #include "Button.h"
 #include <GLFW/glfw3.h>
 
